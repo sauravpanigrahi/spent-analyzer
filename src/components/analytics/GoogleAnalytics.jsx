@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { notifyWarning } from "../../utils/notifications";
 
 const CONSENT_KEY = "spent-analyzer-analytics-consent";
 const CONSENT_EVENT = "spent-analyzer-analytics-consent";
@@ -10,8 +11,9 @@ const measurementId =
     : null;
 
 if (configuredMeasurementId && !measurementId) {
-  console.error(
-    "GA_MEASUREMENT_ID must be a valid Google Analytics 4 ID, for example G-XXXXXXXXXX.",
+  notifyWarning(
+    "Analytics is not configured because the measurement ID is invalid.",
+    { toastId: "invalid-ga-measurement-id" },
   );
 }
 
@@ -58,7 +60,13 @@ const savedConsent = () => {
     const value = window.localStorage.getItem(CONSENT_KEY);
     return value === "accepted" || value === "rejected" ? value : null;
   } catch (error) {
-    console.error("Could not read analytics consent preference:", error);
+    if (import.meta.env.DEV) {
+      console.error("Could not read analytics consent preference.");
+    }
+    notifyWarning("Your analytics consent preference couldn't be read.", {
+      toastId: "analytics-consent-read-warning",
+      dedupeForMs: 60000,
+    });
     return null;
   }
 };
@@ -114,7 +122,13 @@ export const AnalyticsConsent = () => {
         window.localStorage.setItem(CONSENT_KEY, value);
       }
     } catch (error) {
-      console.error("Could not save analytics consent preference:", error);
+      if (import.meta.env.DEV) {
+        console.error("Could not save analytics consent preference.");
+      }
+      notifyWarning(
+        "Your analytics consent choice couldn't be saved on this device.",
+        { toastId: "analytics-consent-save-warning", dedupeForMs: 60000 },
+      );
     }
     setConsent(value);
     window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: value }));

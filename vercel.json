@@ -3,6 +3,8 @@
     { "source": "/login", "destination": "/index.html" },
     { "source": "/signup", "destination": "/index.html" },
     { "source": "/forgot-password", "destination": "/index.html" },
+    { "source": "/reset-password", "destination": "/index.html" },
+    { "source": "/email-confirmed", "destination": "/index.html" },
     { "source": "/profile-setup", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/transactions", "destination": "/index.html" },
@@ -64,6 +66,14 @@
     },
     {
       "source": "/forgot-password",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/reset-password",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/email-confirmed",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {

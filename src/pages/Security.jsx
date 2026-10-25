@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { notifyError, notifyInfo } from "../utils/notifications";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -13,8 +14,6 @@ import {
 import {
   Lock,
   Shield,
-  AlertCircle,
-  CheckCircle2,
   AlertTriangle,
   Users,
   Mail,
@@ -31,7 +30,6 @@ export const Security = () => {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -77,24 +75,25 @@ export const Security = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      notifyError("Please correct the highlighted password fields.");
+      return;
+    }
 
-    setSuccessMessage("");
-    const result = await changePassword(
-      formData.currentPassword,
-      formData.newPassword,
-    );
-
-    if (result.success) {
-      setSuccessMessage("Password changed successfully!");
+    try {
+      const result = await changePassword(
+        formData.currentPassword,
+        formData.newPassword,
+      );
+      if (!result.success) return;
       setFormData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setPasswordStrength(0);
-    } else {
-      setSuccessMessage(result.error || "Password change failed");
+    } catch {
+      notifyError("We couldn't change your password. Please try again.");
     }
   };
 
@@ -105,12 +104,14 @@ export const Security = () => {
   };
 
   const handleForgotPassword = async () => {
-    setSuccessMessage("");
-    const result = await forgotPassword(user?.email || "");
-    if (result.success) {
-      setSuccessMessage(result.message);
-    } else {
-      setSuccessMessage(result.error || "Failed to send reset email");
+    if (isLoading) return;
+    try {
+      const result = await forgotPassword(user?.email || "");
+      if (result.success) {
+        notifyInfo(result.message);
+      }
+    } catch {
+      notifyError("We couldn't process that request right now. Please try again.");
     }
   };
 
@@ -133,16 +134,6 @@ export const Security = () => {
           </p>
         </div>
 
-        {successMessage && (
-          <div
-            className="mb-6 p-4 rounded-xl bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-2 text-sm"
-            role="alert"
-          >
-            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
         <Card>
           <CardContent className="p-6">
             <div className="space-y-6">
@@ -154,6 +145,8 @@ export const Security = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleForgotPassword}
+                  loading={isLoading}
+                  disabled={isLoading}
                   leftIcon={<Mail className="h-4 w-4" />}
                 >
                   Forgot Password?

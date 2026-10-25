@@ -1,57 +1,72 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCooldown } from "../hooks/useCooldown";
+import { notifyError } from "../utils/notifications";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import {
   Mail,
-  AlertCircle,
   CheckCircle2,
   ArrowLeft,
-  Lock,
   RotateCcw,
 } from "lucide-react";
 
 export const ForgotPassword = () => {
   const { forgotPassword, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const { secondsRemaining, startCooldown } = useCooldown();
+  const submitting = useRef(false);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
 
   const validate = () => {
-    if (!email) {
-      setError("Email is required");
+    if (!email.trim()) {
+      notifyError("Email is required.");
       return false;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Invalid email format");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      notifyError("Enter a valid email address.");
       return false;
     }
-    setError("");
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading || submitting.current || secondsRemaining > 0) return;
     if (!validate()) return;
 
-    setError("");
-    const result = await forgotPassword(email);
+    startCooldown();
+    submitting.current = true;
+    try {
+      const result = await forgotPassword(email.trim());
 
-    if (result.success) {
-      setSuccess(true);
-      setMessage(result.message);
-    } else {
-      setError(result.error || "Failed to send reset email");
+      if (result.success) {
+        setSuccess(true);
+        setMessage(result.message);
+      }
+    } catch {
+      notifyError("We couldn't connect. Check your internet connection and try again.");
+    } finally {
+      submitting.current = false;
+    }
+  };
+
+  const handleResend = async () => {
+    if (isLoading || submitting.current || secondsRemaining > 0) return;
+    startCooldown();
+    submitting.current = true;
+    try {
+      const result = await forgotPassword(email.trim());
+      if (result.success) {
+        setMessage(result.message);
+      }
+    } catch {
+      notifyError("We couldn't connect. Check your internet connection and try again.");
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -87,8 +102,21 @@ export const ForgotPassword = () => {
                   Check Your Email
                 </h2>
                 <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-                  {message}
+                  {message} For your security, this message does not confirm
+                  whether an account exists for that address.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mb-3 w-full"
+                  loading={isLoading}
+                  disabled={secondsRemaining > 0}
+                  onClick={handleResend}
+                >
+                  {secondsRemaining > 0
+                    ? `Resend available in ${secondsRemaining}s`
+                    : "Resend reset email"}
+                </Button>
                 <Link to="/login">
                   <Button variant="primary" className="w-full">
                     Back to Sign In
@@ -97,16 +125,6 @@ export const ForgotPassword = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div
-                    className="p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
-                    role="alert"
-                  >
-                    <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
                 <Input
                   label="Email"
                   type="email"
@@ -123,9 +141,12 @@ export const ForgotPassword = () => {
                   variant="primary"
                   className="w-full"
                   loading={isLoading}
+                  disabled={isLoading || secondsRemaining > 0}
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Send Reset Link
+                  {secondsRemaining > 0
+                    ? `Try again in ${secondsRemaining}s`
+                    : "Send Reset Link"}
                 </Button>
               </form>
             )}
@@ -144,11 +165,6 @@ export const ForgotPassword = () => {
           </CardContent>
         </Card>
 
-        <div className="mt-6 p-4 rounded-xl bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 text-center">
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            <strong>Demo Mode:</strong> Use demo@spendanalyzer.com
-          </p>
-        </div>
       </div>
     </div>
   );

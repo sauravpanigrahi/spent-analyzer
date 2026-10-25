@@ -11,6 +11,10 @@ import {
   calculateBudgetProgress,
   generateId,
 } from "../utils/helpers";
+import {
+  notifySuccess,
+  notifyWarning,
+} from "../utils/notifications";
 
 const BudgetContext = createContext(null);
 
@@ -32,14 +36,22 @@ export const BudgetProvider = ({ children }) => {
 
     const userId = user.id;
     const loadUserData = (key) => {
-      const saved = localStorage.getItem(`${key}:${userId}`);
-      if (!saved) return [];
-
       try {
+        const saved = localStorage.getItem(`${key}:${userId}`);
+        if (!saved) return [];
         const parsed = JSON.parse(saved);
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
-        console.error(`Could not read saved ${key} for this account.`, error);
+        if (import.meta.env.DEV) {
+          console.error(
+            `Could not read saved ${key} for this account:`,
+            error.name,
+          );
+        }
+        notifyWarning(
+          "Some saved planning data couldn't be read and may need to be entered again.",
+          { toastId: "budget-data-read-warning", dedupeForMs: 60000 },
+        );
         return [];
       }
     };
@@ -53,14 +65,21 @@ export const BudgetProvider = ({ children }) => {
   useEffect(() => {
     if (!user?.id || loadedUserId !== user.id) return;
 
-    localStorage.setItem(
-      `spend_analyzer_budgets:${user.id}`,
-      JSON.stringify(budgets),
-    );
-    localStorage.setItem(
-      `spend_analyzer_savings_goals:${user.id}`,
-      JSON.stringify(savingsGoals),
-    );
+    try {
+      localStorage.setItem(
+        `spend_analyzer_budgets:${user.id}`,
+        JSON.stringify(budgets),
+      );
+      localStorage.setItem(
+        `spend_analyzer_savings_goals:${user.id}`,
+        JSON.stringify(savingsGoals),
+      );
+    } catch {
+      notifyWarning(
+        "Your latest planning changes couldn't be saved on this device. Check available storage.",
+        { toastId: "budget-data-save-error", dedupeForMs: 60000 },
+      );
+    }
   }, [budgets, loadedUserId, savingsGoals, user?.id]);
 
   const visibleBudgets = loadedUserId === user?.id ? budgets : [];
@@ -73,6 +92,7 @@ export const BudgetProvider = ({ children }) => {
       alertThreshold: budget.alertThreshold || 80,
     };
     setBudgets((prev) => [...prev, newBudget]);
+    notifySuccess("Budget created.");
     return newBudget;
   }, []);
 
@@ -80,10 +100,12 @@ export const BudgetProvider = ({ children }) => {
     setBudgets((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updates } : b)),
     );
+    notifySuccess("Budget updated.");
   }, []);
 
   const deleteBudget = useCallback((id) => {
     setBudgets((prev) => prev.filter((b) => b.id !== id));
+    notifySuccess("Budget deleted.");
   }, []);
 
   const addSavingsGoal = useCallback((goal) => {
@@ -93,6 +115,7 @@ export const BudgetProvider = ({ children }) => {
       currentAmount: goal.currentAmount || 0,
     };
     setSavingsGoals((prev) => [...prev, newGoal]);
+    notifySuccess("Savings goal created.");
     return newGoal;
   }, []);
 
@@ -100,10 +123,12 @@ export const BudgetProvider = ({ children }) => {
     setSavingsGoals((prev) =>
       prev.map((g) => (g.id === id ? { ...g, ...updates } : g)),
     );
+    notifySuccess("Savings goal updated.");
   }, []);
 
   const deleteSavingsGoal = useCallback((id) => {
     setSavingsGoals((prev) => prev.filter((g) => g.id !== id));
+    notifySuccess("Savings goal deleted.");
   }, []);
 
   const addToSavingsGoal = useCallback((id, amount) => {
@@ -112,6 +137,7 @@ export const BudgetProvider = ({ children }) => {
         g.id === id ? { ...g, currentAmount: g.currentAmount + amount } : g,
       ),
     );
+    notifySuccess("Savings goal contribution added.");
   }, []);
 
   return (

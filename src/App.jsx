@@ -17,6 +17,16 @@ const ForgotPassword = lazy(() =>
     default: module.ForgotPassword,
   })),
 );
+const ResetPassword = lazy(() =>
+  import("./pages/ResetPassword").then((module) => ({
+    default: module.ResetPassword,
+  })),
+);
+const EmailConfirmation = lazy(() =>
+  import("./pages/EmailConfirmation").then((module) => ({
+    default: module.EmailConfirmation,
+  })),
+);
 const Dashboard = lazy(() =>
   import("./pages/Dashboard").then((module) => ({
     default: module.Dashboard,
@@ -121,6 +131,8 @@ const App = () => {
           }
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/email-confirmed" element={<EmailConfirmation />} />
         <Route
           path="/profile-setup"
           element={

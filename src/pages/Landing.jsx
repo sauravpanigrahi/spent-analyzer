@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../DB/supabaseclient";
+import { getSafeErrorMessage, notifyError } from "../utils/notifications";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
@@ -56,7 +57,6 @@ export const Landing = () => {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [platformStats, setPlatformStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState("");
 
   useEffect(() => {
     let isCurrent = true;
@@ -66,7 +66,13 @@ export const Landing = () => {
 
       if (!isCurrent) return;
       if (error) {
-        setStatsError(error.message);
+        notifyError(
+          getSafeErrorMessage(
+            error,
+            "Live platform statistics are temporarily unavailable.",
+          ),
+          { toastId: "landing-platform-stats-error" },
+        );
         setStatsLoading(false);
         return;
       }
@@ -75,10 +81,12 @@ export const Landing = () => {
       if (
         !stats ||
         !Number.isFinite(Number(stats.registered_users)) ||
-        !Number.isFinite(Number(stats.transactions_tracked)) ||
-        !Number.isFinite(Number(stats.money_managed))
+        !Number.isFinite(Number(stats.transactions_tracked))
       ) {
-        setStatsError("Supabase returned invalid platform statistics.");
+        notifyError(
+          "Live platform statistics are temporarily unavailable.",
+          { toastId: "landing-platform-stats-error" },
+        );
         setStatsLoading(false);
         return;
       }
@@ -89,7 +97,13 @@ export const Landing = () => {
 
     loadPlatformStats().catch((error) => {
       if (isCurrent) {
-        setStatsError(error.message || "Could not load platform statistics.");
+        notifyError(
+          getSafeErrorMessage(
+            error,
+            "Live platform statistics are temporarily unavailable.",
+          ),
+          { toastId: "landing-platform-stats-error" },
+        );
         setStatsLoading(false);
       }
     });
@@ -112,15 +126,6 @@ export const Landing = () => {
             Number(platformStats.transactions_tracked),
           ),
           label: "Transactions Tracked",
-        },
-        {
-          value: new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            notation: "compact",
-            maximumFractionDigits: 1,
-          }).format(Number(platformStats.money_managed)),
-          label: "Money Managed",
         },
       ]
     : [];
@@ -229,9 +234,13 @@ export const Landing = () => {
                 ? [
                     { value: "...", label: "Registered Users" },
                     { value: "...", label: "Transactions Tracked" },
-                    { value: "...", label: "Money Managed" },
                   ]
-                : formattedStats
+                : formattedStats.length
+                  ? formattedStats
+                  : [
+                      { value: "—", label: "Registered Users" },
+                      { value: "—", label: "Transactions Tracked" },
+                    ]
               ).map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
@@ -240,21 +249,8 @@ export const Landing = () => {
                   <div className="text-neutral-600 dark:text-neutral-400">
                     {stat.label}
                   </div>
-                  {stat.label === "Money Managed" && platformStats && (
-                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                      Total value of saved transactions
-                    </div>
-                  )}
                 </div>
               ))}
-              {statsError && (
-                <p
-                  className="col-span-full text-center text-sm text-red-600 dark:text-red-400"
-                  role="status"
-                >
-                  Live platform statistics are unavailable: {statsError}
-                </p>
-              )}
             </div>
           </div>
         </section>

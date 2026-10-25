@@ -10,19 +10,27 @@ import {
   differenceInDays,
 } from "date-fns";
 import { getCategoryById } from "../data/mockData";
+import { notifyWarning } from "./notifications";
 
 export const formatCurrency = (amount, currency = "", language = "") => {
-  const activeUserId = sessionStorage.getItem("spend_analyzer_active_user_id");
   let profile = {};
-
-  if (activeUserId) {
-    try {
+  try {
+    const activeUserId = sessionStorage.getItem(
+      "spend_analyzer_active_user_id",
+    );
+    if (activeUserId) {
       profile = JSON.parse(
         localStorage.getItem(`spend_analyzer_profile_${activeUserId}`) || "{}",
       );
-    } catch (error) {
-      console.error("Could not read saved currency preferences.", error);
     }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Could not read saved currency preferences:", error.name);
+    }
+    notifyWarning("Saved currency preferences could not be read.", {
+      toastId: "currency-preferences-read-warning",
+      dedupeForMs: 60000,
+    });
   }
 
   const selectedCurrency = currency || profile.currency || "INR";
@@ -38,7 +46,13 @@ export const formatCurrency = (amount, currency = "", language = "") => {
       maximumFractionDigits: 2,
     }).format(amount);
   } catch (error) {
-    console.error("Currency formatting failed:", error);
+    if (import.meta.env.DEV) {
+      console.error("Currency formatting failed:", error.name);
+    }
+    notifyWarning(
+      "Your currency preference couldn't be applied. Showing the amount with its currency code instead.",
+      { toastId: "currency-format-warning", dedupeForMs: 60000 },
+    );
     return `${selectedCurrency} ${Number(amount).toFixed(2)}`;
   }
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { notifyError } from "../utils/notifications";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -15,8 +16,6 @@ import {
   Mail,
   Lock,
   Settings as SettingsIcon,
-  AlertCircle,
-  CheckCircle2,
   Shield,
   Monitor,
   Moon,
@@ -35,7 +34,6 @@ export const Settings = () => {
     language: "en-US",
   });
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -58,7 +56,7 @@ export const Settings = () => {
           language: result.profile.language || "en-US",
         }));
       } else if (!result.success) {
-        setErrors({ general: result.error });
+        setErrors({});
       }
 
       setIsProfileLoading(false);
@@ -83,23 +81,19 @@ export const Settings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      notifyError("Please correct the highlighted profile fields.");
+      return;
+    }
 
-    setSuccessMessage("");
     setErrors({});
     setIsSaving(true);
 
     try {
       const result = await updateProfile(formData);
-      if (result.success) {
-        setSuccessMessage(result.warning || "Profile updated successfully!");
-      } else {
-        setErrors({ general: result.error || "Profile update failed." });
-      }
-    } catch (error) {
-      setErrors({
-        general: error.message || "Profile update failed. Please try again.",
-      });
+      if (!result.success) return;
+    } catch {
+      notifyError("We couldn't update your profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -117,16 +111,13 @@ export const Settings = () => {
     try {
       const result = await deleteAccount();
       if (!result.success) {
-        setErrors({ general: result.error || "Could not delete account." });
         return;
       }
 
       setDeletingAccount(false);
       navigate("/login", { replace: true });
-    } catch (error) {
-      setErrors({
-        general: error.message || "Could not delete account.",
-      });
+    } catch {
+      notifyError("We couldn't delete your account. Please try again.");
     } finally {
       setIsDeletingAccount(false);
     }
@@ -150,26 +141,6 @@ export const Settings = () => {
             Manage your account and preferences
           </p>
         </div>
-
-        {successMessage && (
-          <div
-            className="mb-6 p-4 rounded-xl bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-2 text-sm"
-            role="alert"
-          >
-            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        {errors.general && (
-          <div
-            className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
-            role="alert"
-          >
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <span>{errors.general}</span>
-          </div>
-        )}
 
         <Card>
           <CardContent className="p-6">
@@ -327,11 +298,6 @@ export const Settings = () => {
               Are you sure you want to delete your account? This action cannot
               be undone and will permanently delete all your data.
             </p>
-            {errors.general && (
-              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                {errors.general}
-              </p>
-            )}
             <div className="flex justify-end gap-3">
               <Button
                 variant="secondary"

@@ -6,6 +6,7 @@ import { Select } from "../ui/Select";
 import { Modal } from "../ui/Modal";
 import { categories, paymentMethods } from "../../data/mockData";
 import { formatCurrency, formatDate } from "../../utils/helpers";
+import { notifyError } from "../../utils/notifications";
 import {
   X,
   Calendar,
@@ -22,7 +23,6 @@ export const TransactionForm = ({
   onSubmit,
   initialData,
   isLoading,
-  submitError,
 }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -85,6 +85,8 @@ export const TransactionForm = ({
         ...formData,
         amount: parseFloat(formData.amount),
       });
+    } else {
+      notifyError("Please correct the highlighted transaction fields.");
     }
   };
 
@@ -130,14 +132,6 @@ export const TransactionForm = ({
       blurBackdrop={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {submitError && (
-          <div
-            className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
-            role="alert"
-          >
-            {submitError}
-          </div>
-        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Title"

@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Card, CardContent } from "../components/ui/Card";
-import { BarChart3, AlertCircle } from "lucide-react";
+import { BarChart3 } from "lucide-react";
+import { notifyError } from "../utils/notifications";
 
 export const ProfileSetup = () => {
   const { user, isLoading, profileadd } = useAuth();
   const navigate = useNavigate();
+  const submitting = useRef(false);
 
   const [formData, setFormData] = useState({
     name: user?.user_metadata?.full_name || "",
@@ -16,28 +18,29 @@ export const ProfileSetup = () => {
     language: "en-US",
     currency: "INR",
   });
-
-  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    if (submitting.current || isLoading) return;
 
     if (!user) {
-      setError("Please log in before setting up your profile.");
+      notifyError("Please log in before setting up your profile.");
       return;
     }
 
     if (!formData.name.trim()) {
-      setError("Please enter your name.");
+      notifyError("Please enter your name.");
       return;
     }
 
     if (!formData.language || !formData.currency) {
-      setError("Please select your language and currency.");
+      notifyError("Please select your language and currency.");
       return;
     }
 
+    submitting.current = true;
+    setIsSaving(true);
     try {
       const result = await profileadd(
         formData.email,
@@ -47,11 +50,12 @@ export const ProfileSetup = () => {
       );
       if (result?.success) {
         navigate("/dashboard");
-      } else {
-        setError(result?.error || "Profile setup failed.");
       }
-    } catch (err) {
-      setError(err.message || "Something went wrong.");
+    } catch {
+      notifyError("We couldn't set up your profile. Please try again.");
+    } finally {
+      submitting.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -82,16 +86,6 @@ export const ProfileSetup = () => {
 
         <Card>
           <CardContent className="p-6">
-            {error && (
-              <div
-                className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
-                role="alert"
-              >
-                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Full Name"
@@ -148,7 +142,8 @@ export const ProfileSetup = () => {
                 type="submit"
                 variant="primary"
                 className="w-full"
-                loading={isLoading}
+                loading={isLoading || isSaving}
+                disabled={isLoading || isSaving}
               >
                 Save Profile
               </Button>

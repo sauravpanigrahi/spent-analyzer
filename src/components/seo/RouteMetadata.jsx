@@ -22,6 +22,14 @@ const routeMetadata = {
     title: "Reset your password | Spend Analyzer",
     description: "Request a password reset for your Spend Analyzer account.",
   },
+  "/reset-password": {
+    title: "Choose a new password | Spend Analyzer",
+    description: "Set a new password for your Spend Analyzer account.",
+  },
+  "/email-confirmed": {
+    title: "Confirming your email | Spend Analyzer",
+    description: "Complete email verification for your Spend Analyzer account.",
+  },
   "/profile-setup": {
     title: "Set up your profile | Spend Analyzer",
     description: "Complete your private Spend Analyzer account profile.",

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useBudgets, useBudgetCalculations } from "../../context/BudgetContext";
 import { useTransactions } from "../../context/TransactionContext";
+import { notifyError } from "../../utils/notifications";
 
 export const BudgetList = () => {
   const { budgets, deleteBudget, addBudget, updateBudget } = useBudgets();
@@ -345,12 +346,26 @@ const BudgetForm = ({ initialData, onSubmit, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const amount = Number(formData.amount);
+    const alertThreshold = Number(formData.alertThreshold);
+    if (!formData.name.trim()) {
+      notifyError("Enter a name for this budget.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      notifyError("Enter a budget amount greater than zero.");
+      return;
+    }
+    if (!Number.isFinite(alertThreshold) || alertThreshold < 1 || alertThreshold > 100) {
+      notifyError("Set the budget alert threshold between 1 and 100 percent.");
+      return;
+    }
     onSubmit({
       name: formData.name,
-      amount: parseFloat(formData.amount),
+      amount,
       period: formData.period,
       category: formData.category || null,
-      alertThreshold: parseInt(formData.alertThreshold),
+      alertThreshold: Math.trunc(alertThreshold),
     });
   };
 

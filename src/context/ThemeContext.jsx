@@ -5,14 +5,13 @@ import {
   useState,
   useCallback,
 } from "react";
+import { notifyWarning } from "../utils/notifications";
 
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme");
-      if (saved) return saved;
       return window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light";
@@ -21,6 +20,31 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [resolvedTheme, setResolvedTheme] = useState("light");
+  const [hasLoadedPreference, setHasLoadedPreference] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "light" || saved === "dark" || saved === "system") {
+        setTheme(saved);
+      } else if (saved) {
+        notifyWarning("Your saved theme preference was invalid.", {
+          toastId: "invalid-theme-preference",
+          dedupeForMs: 60000,
+        });
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Could not read the saved theme preference:", error.name);
+      }
+      notifyWarning("Your saved theme preference couldn't be read.", {
+        toastId: "theme-preference-read-warning",
+        dedupeForMs: 60000,
+      });
+    } finally {
+      setHasLoadedPreference(true);
+    }
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -35,8 +59,20 @@ export const ThemeProvider = ({ children }) => {
       setResolvedTheme(theme);
       root.classList.toggle("dark", theme === "dark");
     }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+    if (hasLoadedPreference) {
+      try {
+        localStorage.setItem("theme", theme);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error("Could not save the theme preference:", error.name);
+        }
+        notifyWarning("Your theme choice couldn't be saved on this device.", {
+          toastId: "theme-preference-save-warning",
+          dedupeForMs: 60000,
+        });
+      }
+    }
+  }, [hasLoadedPreference, theme]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");

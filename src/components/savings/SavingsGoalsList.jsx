@@ -13,6 +13,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { useBudgets } from "../../context/BudgetContext";
+import { notifyError } from "../../utils/notifications";
 
 export const SavingsGoalsList = () => {
   const {
@@ -64,12 +65,16 @@ export const SavingsGoalsList = () => {
   const [addAmount, setAddAmount] = useState("");
 
   const confirmAddFunds = () => {
-    if (addingToGoal && addAmount) {
-      addToSavingsGoal(addingToGoal.id, parseFloat(addAmount));
-      setShowAddFunds(false);
-      setAddingToGoal(null);
-      setAddAmount("");
+    const amount = Number(addAmount);
+    if (!addingToGoal) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      notifyError("Enter a contribution amount greater than zero.");
+      return;
     }
+    addToSavingsGoal(addingToGoal.id, amount);
+    setShowAddFunds(false);
+    setAddingToGoal(null);
+    setAddAmount("");
   };
 
   return (
@@ -367,10 +372,28 @@ const SavingsGoalForm = ({ initialData, onSubmit, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const targetAmount = Number(formData.targetAmount);
+    const currentAmount = Number(formData.currentAmount);
+    if (!formData.name.trim()) {
+      notifyError("Enter a name for this savings goal.");
+      return;
+    }
+    if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+      notifyError("Enter a target amount greater than zero.");
+      return;
+    }
+    if (!Number.isFinite(currentAmount) || currentAmount < 0) {
+      notifyError("Enter a current amount of zero or more.");
+      return;
+    }
+    if (!formData.targetDate || Number.isNaN(new Date(formData.targetDate).getTime())) {
+      notifyError("Choose a valid target date.");
+      return;
+    }
     onSubmit({
       name: formData.name,
-      targetAmount: parseFloat(formData.targetAmount),
-      currentAmount: parseFloat(formData.currentAmount) || 0,
+      targetAmount,
+      currentAmount,
       targetDate: formData.targetDate,
       category: formData.category,
       color: formData.color,

@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCooldown } from "../hooks/useCooldown";
+import { notifyError } from "../utils/notifications";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "../components/ui/Card";
 import {
   Eye,
@@ -17,14 +16,14 @@ import {
   Mail,
   Lock,
   User,
-  AlertCircle,
-  CheckCircle2,
   Shield,
 } from "lucide-react";
 
 export const Signup = () => {
-  const { signup, isLoading } = useAuth();
+  const { signup, resendVerificationEmail, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { secondsRemaining, startCooldown } = useCooldown();
+  const submitting = useRef(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -34,7 +33,8 @@ export const Signup = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
   const [passwordStrength, setPasswordStrength] = useState(0);
 
   const calculateStrength = (password) => {
@@ -78,32 +78,66 @@ export const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
-
-    setError("");
-    const result = await signup(
-      formData.name.trim(),
-      formData.email.trim(),
-      formData.password,
-    );
-
-    if (!result.success) {
-      setError(result.error || "Signup failed. Please try again.");
+    if (isLoading || submitting.current) return;
+    if (!validate()) {
+      notifyError("Please correct the highlighted signup fields.");
       return;
     }
 
-    if (result.requiresEmailConfirmation) {
-      navigate("/login", {
-        replace: true,
-        state: {
-          message: "Account created! Please verify your email, then log in.",
-          email: formData.email,
-        },
-      });
-      return;
-    }
+    submitting.current = true;
+    try {
+      const result = await signup(
+        formData.name.trim(),
+        formData.email.trim(),
+        formData.password,
+      );
 
-    navigate("/profile-setup", { replace: true });
+      if (!result.success) {
+        if (result.possibleAccountCreated) {
+          setVerificationEmail(formData.email.trim());
+          setVerificationMessage(
+            "An account may have been created, but the verification email may be delayed. You can request another verification email after the cooldown.",
+          );
+          startCooldown();
+        }
+        return;
+      }
+
+      if (result.requiresEmailConfirmation) {
+        setVerificationEmail(formData.email.trim());
+        setVerificationMessage(
+          "If this email is eligible for a new account, a verification link will arrive shortly. Check your spam or junk folder too.",
+        );
+        startCooldown();
+        return;
+      }
+
+      navigate("/profile-setup", { replace: true });
+    } catch {
+      notifyError("We couldn't create your account right now. Please try again later.");
+    } finally {
+      submitting.current = false;
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (
+      isLoading ||
+      submitting.current ||
+      secondsRemaining > 0 ||
+      !verificationEmail
+    )
+      return;
+    startCooldown();
+    submitting.current = true;
+    try {
+      const result = await resendVerificationEmail(verificationEmail);
+      if (!result.success) return;
+    } catch {
+      notifyError("We couldn't send a verification email. Please try again later.");
+    } finally {
+      submitting.current = false;
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -134,16 +168,42 @@ export const Signup = () => {
 
         <Card>
           <CardContent className="p-6">
-            {error && (
-              <div
-                className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
-                role="alert"
-              >
-                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                <span>{error}</span>
+            {verificationEmail ? (
+              <div className="space-y-4 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <Mail className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+                  Check your email
+                </h2>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  {verificationMessage}
+                </p>
+                <p className="break-all text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                  {verificationEmail}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  loading={isLoading}
+                  disabled={secondsRemaining > 0}
+                  onClick={handleResendVerification}
+                >
+                  {secondsRemaining > 0
+                    ? `Try again in ${secondsRemaining}s`
+                    : "Resend verification email"}
+                </Button>
+                <Link
+                  to="/login"
+                  state={{ email: verificationEmail }}
+                  className="inline-block text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  Back to sign in
+                </Link>
               </div>
-            )}
-
+            ) : (
+              <>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Full Name"
@@ -295,6 +355,7 @@ export const Signup = () => {
                 variant="primary"
                 className="w-full"
                 loading={isLoading}
+                disabled={isLoading}
               >
                 <Shield className="h-4 w-4" />
                 Create Account
@@ -329,6 +390,8 @@ export const Signup = () => {
                 </Button>
               </div>
             </div> */}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -344,10 +407,10 @@ export const Signup = () => {
 
         <div className="mt-8 text-center">
           <Link
-            to="/dashboard"
+            to="/"
             className="text-sm text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400"
           >
-            ← Back to Dashboard
+            ← Back to Home
           </Link>
         </div>
       </div>

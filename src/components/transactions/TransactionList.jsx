@@ -19,6 +19,10 @@ import {
   X,
 } from "lucide-react";
 import { useTransactions } from "../../context/TransactionContext";
+import {
+  notifyError,
+  notifySuccess,
+} from "../../utils/notifications";
 
 export const TransactionList = ({ onEdit }) => {
   const {
@@ -33,24 +37,39 @@ export const TransactionList = ({ onEdit }) => {
 
   const [deleteId, setDeleteId] = useState(null);
   const [showExport, setShowExport] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = (id) => setDeleteId(id);
   const confirmDelete = async () => {
     if (deleteId) {
-      setDeleteError("");
       setIsDeleting(true);
       try {
         const result = await deleteTransaction(deleteId);
         if (result.success) {
           setDeleteId(null);
-        } else {
-          setDeleteError(result.error);
         }
+      } catch {
+        notifyError("We couldn't delete this transaction. Please try again.");
       } finally {
         setIsDeleting(false);
       }
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      const csv = exportTransactions();
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setShowExport(false);
+      notifySuccess("Transactions exported.");
+    } catch {
+      notifyError("We couldn't export your transactions. Please try again.");
     }
   };
 
@@ -430,14 +449,10 @@ export const TransactionList = ({ onEdit }) => {
         isOpen={!!deleteId}
         onClose={() => {
           setDeleteId(null);
-          setDeleteError("");
         }}
         onConfirm={confirmDelete}
         title="Delete Transaction"
-        description={
-          deleteError ||
-          "Are you sure you want to delete this transaction? This action cannot be undone."
-        }
+        description="Are you sure you want to delete this transaction? This action cannot be undone."
         confirmText="Delete"
         variant="destructive"
         blurBackdrop={false}
@@ -461,17 +476,7 @@ export const TransactionList = ({ onEdit }) => {
             </Button>
             <Button
               variant="primary"
-              onClick={() => {
-                const csv = exportTransactions();
-                const blob = new Blob([csv], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                setShowExport(false);
-              }}
+              onClick={handleExport}
             >
               Download CSV
             </Button>

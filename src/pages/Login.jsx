@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate,useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCooldown } from "../hooks/useCooldown";
+import {
+  notifyError,
+  notifyInfo,
+  notifySuccess,
+} from "../utils/notifications";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -15,14 +21,15 @@ import {
   EyeOff,
   Mail,
   Lock,
-  AlertCircle,
   CheckCircle2,
 } from "lucide-react";
 
 export const Login = () => {
-  const { login, isLoading } = useAuth();
+  const { login, resendVerificationEmail, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { secondsRemaining, startCooldown } = useCooldown();
+  const submitting = useRef(false);
 
   const [formData, setFormData] = useState({
     email: location.state?.email || "",
@@ -32,8 +39,20 @@ export const Login = () => {
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState(location.state?.message || "");
+  const [requiresEmailVerification, setRequiresEmailVerification] =
+    useState(false);
+  const [message, setMessage] = useState(
+    location.state?.message ||
+      (new URLSearchParams(location.search).has("verified")
+        ? "Your email is verified. Please sign in to continue."
+        : ""),
+  );
+  useEffect(() => {
+    if (message) {
+      notifyInfo(message, { toastId: `login-message:${message}` });
+    }
+  }, [message]);
+
   const validate = () => {
     const newErrors = {};
 
@@ -52,31 +71,65 @@ export const Login = () => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading || submitting.current) return;
 
-    if (!validate()) return;
-
-    setError("");
-    setMessage("");
-
-    const result = await login(formData.email.trim(), formData.password);
-
-    if (!result.success) {
-      setError(result.error || "Login failed");
+    if (!validate()) {
+      notifyError("Please correct the highlighted sign-in fields.");
       return;
     }
 
-    if (result.requiresProfileSetup) {
-      navigate("/profile-setup", { replace: true });
-    } else {
-      navigate("/dashboard", { replace: true });
+    setRequiresEmailVerification(false);
+    setMessage("");
+
+    submitting.current = true;
+    try {
+      const result = await login(formData.email.trim(), formData.password);
+
+      if (!result.success) {
+        setRequiresEmailVerification(!!result.requiresEmailVerification);
+        return;
+      }
+
+      if (result.requiresProfileSetup) {
+        navigate("/profile-setup", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+      notifySuccess("Signed in successfully.");
+    } catch {
+      notifyError("We couldn't sign you in right now. Please try again.");
+    } finally {
+      submitting.current = false;
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (isLoading || submitting.current || secondsRemaining > 0) return;
+    startCooldown();
+    submitting.current = true;
+    try {
+      const result = await resendVerificationEmail(formData.email.trim());
+      if (!result.success) return;
+    } catch {
+      notifyError("We couldn't send a verification email. Please try again later.");
+    } finally {
+      submitting.current = false;
     }
   };
 
   const handleDemoLogin = async () => {
-    setError("");
-    const result = await login("demo@spendanalyzer.com", "demo1234", true);
-    if (result.success) {
-      navigate("/dashboard");
+    if (isLoading || submitting.current) return;
+    submitting.current = true;
+    try {
+      const result = await login("demo@spendanalyzer.com", "demo1234", true);
+      if (result.success) {
+        navigate("/dashboard");
+        notifySuccess("Signed in successfully.");
+      }
+    } catch {
+      notifyError("We couldn't sign you in right now. Please try again.");
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -102,21 +155,20 @@ export const Login = () => {
 
         <Card>
           <CardContent className="p-6">
-            {message && (
-              <div
-                className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                role="status"
-              >
-                {message}
-              </div>
-            )}
-            {error && (
-              <div
-                className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
-                role="alert"
-              >
-                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                <span>{error}</span>
+            {requiresEmailVerification && (
+              <div className="mb-6 space-y-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  loading={isLoading}
+                  disabled={isLoading || secondsRemaining > 0}
+                  onClick={handleResendVerification}
+                >
+                  {secondsRemaining > 0
+                    ? `Resend available in ${secondsRemaining}s`
+                    : "Resend verification email"}
+                </Button>
               </div>
             )}
 
@@ -267,10 +319,10 @@ export const Login = () => {
 
         <div className="mt-8 text-center">
           <Link
-            to="/dashboard"
+            to="/"
             className="text-sm text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400"
           >
-            ← Back to Dashboard
+            ← Back to Home
           </Link>
         </div>
       </div>

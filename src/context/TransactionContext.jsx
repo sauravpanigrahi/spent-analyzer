@@ -9,6 +9,11 @@ import {
 import { supabase } from "../DB/supabaseclient";
 import { useAuth } from "./AuthContext";
 import {
+  getSafeErrorMessage,
+  notifyError,
+  notifySuccess,
+} from "../utils/notifications";
+import {
   calculateTotals,
   getCategoryTotals,
   getMonthlyComparison,
@@ -47,6 +52,12 @@ const toDatabase = (transaction, userId) => ({
     ? transaction.recurringFrequency
     : null,
 });
+const transactionFailure = (error, fallback) => {
+  const message =
+    typeof error === "string" ? error : getSafeErrorMessage(error, fallback);
+  notifyError(message);
+  return { success: false, error: message };
+};
 
 export const TransactionProvider = ({ children }) => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -93,7 +104,15 @@ export const TransactionProvider = ({ children }) => {
       if (!active) return;
 
       if (error) {
-        setLoadError(error.message);
+        const message = getSafeErrorMessage(
+          error,
+          "We couldn't load your transactions. Please try again.",
+        );
+        setLoadError(message);
+        notifyError(message, {
+          toastId: "transaction-load-error",
+          dedupeForMs: 60000,
+        });
       } else {
         setTransactions(data.map(fromDatabase));
       }
@@ -103,7 +122,15 @@ export const TransactionProvider = ({ children }) => {
 
     loadTransactions().catch((error) => {
       if (!active) return;
-      setLoadError(error.message || "Could not load transactions.");
+      const message = getSafeErrorMessage(
+        error,
+        "We couldn't load your transactions. Please try again.",
+      );
+      setLoadError(message);
+      notifyError(message, {
+        toastId: "transaction-load-error",
+        dedupeForMs: 60000,
+      });
       setLoadedUserId(user.id);
       setIsLoading(false);
     });
@@ -162,7 +189,10 @@ export const TransactionProvider = ({ children }) => {
   const addTransaction = useCallback(
     async (transaction) => {
       if (!user?.id) {
-        return { success: false, error: "Please log in to add a transaction." };
+        return transactionFailure(
+          "Please log in to add a transaction.",
+          "Please log in to add a transaction.",
+        );
       }
 
       try {
@@ -180,16 +210,16 @@ export const TransactionProvider = ({ children }) => {
           .select()
           .single();
 
-        if (error) return { success: false, error: error.message };
+        if (error) {
+          return transactionFailure(error, "We couldn't save this transaction.");
+        }
 
         const savedTransaction = fromDatabase(data);
         setTransactions((previous) => [savedTransaction, ...previous]);
+        notifySuccess("Transaction added.");
         return { success: true, transaction: savedTransaction };
       } catch (error) {
-        return {
-          success: false,
-          error: error.message || "Could not save transaction.",
-        };
+        return transactionFailure(error, "We couldn't save this transaction.");
       }
     },
     [user?.id],
@@ -198,7 +228,10 @@ export const TransactionProvider = ({ children }) => {
   const updateTransaction = useCallback(
     async (id, updates) => {
       if (!user?.id) {
-        return { success: false, error: "Please log in to edit a transaction." };
+        return transactionFailure(
+          "Please log in to edit a transaction.",
+          "Please log in to edit a transaction.",
+        );
       }
 
       try {
@@ -210,12 +243,14 @@ export const TransactionProvider = ({ children }) => {
           .select()
           .maybeSingle();
 
-        if (error) return { success: false, error: error.message };
+        if (error) {
+          return transactionFailure(error, "We couldn't update this transaction.");
+        }
         if (!data) {
-          return {
-            success: false,
-            error: "Transaction not found or you do not have permission to edit it.",
-          };
+          return transactionFailure(
+            "Transaction not found or you do not have permission to edit it.",
+            "Transaction not found or you do not have permission to edit it.",
+          );
         }
 
         const updatedTransaction = fromDatabase(data);
@@ -224,12 +259,10 @@ export const TransactionProvider = ({ children }) => {
             transaction.id === id ? updatedTransaction : transaction,
           ),
         );
+        notifySuccess("Transaction updated.");
         return { success: true, transaction: updatedTransaction };
       } catch (error) {
-        return {
-          success: false,
-          error: error.message || "Could not update transaction.",
-        };
+        return transactionFailure(error, "We couldn't update this transaction.");
       }
     },
     [user?.id],
@@ -238,10 +271,10 @@ export const TransactionProvider = ({ children }) => {
   const deleteTransaction = useCallback(
     async (id) => {
       if (!user?.id) {
-        return {
-          success: false,
-          error: "Please log in to delete a transaction.",
-        };
+        return transactionFailure(
+          "Please log in to delete a transaction.",
+          "Please log in to delete a transaction.",
+        );
       }
 
       try {
@@ -253,23 +286,23 @@ export const TransactionProvider = ({ children }) => {
           .select("id")
           .maybeSingle();
 
-        if (error) return { success: false, error: error.message };
+        if (error) {
+          return transactionFailure(error, "We couldn't delete this transaction.");
+        }
         if (!data) {
-          return {
-            success: false,
-            error: "Transaction not found or you do not have permission to delete it.",
-          };
+          return transactionFailure(
+            "Transaction not found or you do not have permission to delete it.",
+            "Transaction not found or you do not have permission to delete it.",
+          );
         }
 
         setTransactions((previous) =>
           previous.filter((transaction) => transaction.id !== id),
         );
+        notifySuccess("Transaction deleted.");
         return { success: true };
       } catch (error) {
-        return {
-          success: false,
-          error: error.message || "Could not delete transaction.",
-        };
+        return transactionFailure(error, "We couldn't delete this transaction.");
       }
     },
     [user?.id],
@@ -278,12 +311,18 @@ export const TransactionProvider = ({ children }) => {
   const importTransactions = useCallback(
     async (csvText) => {
       if (!user?.id) {
-        return { success: false, error: "Please log in to import transactions." };
+        return transactionFailure(
+          "Please log in to import transactions.",
+          "Please log in to import transactions.",
+        );
       }
 
       const parsed = parseCSV(csvText);
       if (parsed.length === 0) {
-        return { success: false, error: "No valid transactions found in CSV." };
+        return transactionFailure(
+          "No valid transactions found in CSV. Check the file format and try again.",
+          "No valid transactions found in CSV.",
+        );
       }
 
       try {
@@ -292,16 +331,19 @@ export const TransactionProvider = ({ children }) => {
           .insert(parsed.map((transaction) => toDatabase(transaction, user.id)))
           .select();
 
-        if (error) return { success: false, error: error.message };
+        if (error) {
+          return transactionFailure(error, "We couldn't import these transactions.");
+        }
 
         const importedTransactions = data.map(fromDatabase);
         setTransactions((previous) => [...importedTransactions, ...previous]);
+        notifySuccess(`Imported ${importedTransactions.length} transactions.`);
         return { success: true, count: importedTransactions.length };
       } catch (error) {
-        return {
-          success: false,
-          error: error.message || "Could not import transactions.",
-        };
+        return transactionFailure(
+          error,
+          "We couldn't import these transactions.",
+        );
       }
     },
     [user?.id],
