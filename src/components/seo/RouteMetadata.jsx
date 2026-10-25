@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const SITE_URL = "https://spent-analyzer-green.vercel.app";
+const SITE_URL = "https://spent-analyzer-two.vercel.app";
 
 const routeMetadata = {
   "/": {
@@ -64,7 +64,9 @@ const setMetaContent = (selector, attribute, value) => {
   }
   if (!element) {
     element = document.createElement("meta");
-    const [key, name] = selector.match(/\[(name|property)="([^"]+)"\]/).slice(1);
+    const [key, name] = selector
+      .match(/\[(name|property)="([^"]+)"\]/)
+      .slice(1);
     element.setAttribute(key, name);
     document.head.appendChild(element);
   }

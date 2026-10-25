@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://spent-analyzer-green.vercel.app/sitemap.xml
+Sitemap: https://spent-analyzer-two.vercel.app/sitemap.xml
