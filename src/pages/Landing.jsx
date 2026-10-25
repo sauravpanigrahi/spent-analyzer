@@ -139,18 +139,18 @@ export const Landing = () => {
               </span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <Link
-                to="#features"
+              <a
+                href="#features"
                 className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
               >
                 Features
-              </Link>
-              <Link
-                to="#how-it-works"
+              </a>
+              <a
+                href="#how-it-works"
                 className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
               >
                 How It Works
-              </Link>
+              </a>
             </div>
             <div className="flex items-center gap-3">
               {!isAuthLoading &&
@@ -187,7 +187,7 @@ export const Landing = () => {
             <div className="text-center max-w-3xl mx-auto">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 text-sm font-medium mb-6 animate-in">
                 <Zap className="h-4 w-4" />
-                <span>New: AI-Powered Insights & Recurring Transactions</span>
+                <span>Expense tracking, budgets, and savings goals</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight mb-6 animate-in">
                 Take Control of Your{" "}
@@ -373,7 +373,7 @@ export const Landing = () => {
 
       <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-8 w-8 rounded-xl bg-primary-600 flex items-center justify-center">
@@ -387,118 +387,32 @@ export const Landing = () => {
                 Modern expense tracking for the financially conscious.
               </p>
             </div>
-            <div>
-              <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
+            <nav aria-label="Explore Spend Analyzer">
+              <h2 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
                 Product
-              </h4>
+              </h2>
               <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
                 <li>
-                  <Link
-                    to="/dashboard"
+                  <a
+                    href="#features"
                     className="hover:text-primary-600 dark:hover:text-primary-400"
                   >
-                    Dashboard
-                  </Link>
+                    Features
+                  </a>
                 </li>
                 <li>
-                  <Link
-                    to="/transactions"
+                  <a
+                    href="#how-it-works"
                     className="hover:text-primary-600 dark:hover:text-primary-400"
                   >
-                    Transactions
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/budgets"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Budgets
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/analytics"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Analytics
-                  </Link>
+                    How it works
+                  </a>
                 </li>
               </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-                Company
-              </h4>
-              <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Careers
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
-                Legal
-              </h4>
-              <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-primary-600 dark:hover:text-primary-400"
-                  >
-                    Security
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            </nav>
           </div>
           <div className="mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            <p>&copy; 2025 Spend Analyzer. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Spend Analyzer.</p>
           </div>
         </div>
       </footer>

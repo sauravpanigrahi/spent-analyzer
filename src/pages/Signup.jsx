@@ -286,20 +286,7 @@ export const Signup = () => {
                   htmlFor="terms"
                   className="text-sm text-neutral-600 dark:text-neutral-400"
                 >
-                  I agree to the{" "}
-                  <Link
-                    href="#"
-                    className="text-primary-600 hover:text-primary-700"
-                  >
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    href="#"
-                    className="text-primary-600 hover:text-primary-700"
-                  >
-                    Privacy Policy
-                  </Link>
+                  I agree to the Terms of Service and Privacy Policy.
                 </label>
               </div>
 
