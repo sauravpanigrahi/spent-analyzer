@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 
 const CONSENT_KEY = "spent-analyzer-analytics-consent";
 const CONSENT_EVENT = "spent-analyzer-analytics-consent";
-const configuredMeasurementId = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
+const configuredMeasurementId = import.meta.env.GA_MEASUREMENT_ID?.trim();
 const measurementId =
   configuredMeasurementId && /^G-[A-Z0-9]+$/i.test(configuredMeasurementId)
     ? configuredMeasurementId
@@ -11,7 +11,7 @@ const measurementId =
 
 if (configuredMeasurementId && !measurementId) {
   console.error(
-    "VITE_GA_MEASUREMENT_ID must be a valid Google Analytics 4 ID, for example G-XXXXXXXXXX.",
+    "GA_MEASUREMENT_ID must be a valid Google Analytics 4 ID, for example G-XXXXXXXXXX.",
   );
 }
 
