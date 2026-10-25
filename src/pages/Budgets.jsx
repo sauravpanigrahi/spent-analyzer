@@ -1,4 +1,4 @@
-import { useBudgets, useBudgetCalculations } from "../context/BudgetContext";
+import { useBudgetCalculations } from "../context/BudgetContext";
 import { useTransactions } from "../context/TransactionContext";
 import { BudgetList } from "../components/budgets/BudgetList";
 import {
@@ -7,7 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/Card";
-import { formatCurrency } from "../utils/helpers";
+import {
+  calculateTotals,
+  filterTransactionsByDate,
+  formatCurrency,
+  getDateRange,
+} from "../utils/helpers";
 import {
   Plus,
   Target,
@@ -19,15 +24,22 @@ import {
 } from "lucide-react";
 
 export const Budgets = () => {
-  const { filteredTransactions } = useTransactions();
+  const { transactions } = useTransactions();
   const {
-    budgets,
     overallBudget,
-    categoryBudgets,
-    overallProgress,
     totalBudgeted,
-    totalSpent,
-  } = useBudgetCalculations(filteredTransactions);
+  } = useBudgetCalculations(transactions);
+  const displayedTotalBudgeted = overallBudget?.amount ?? totalBudgeted;
+  const { start, end } = getDateRange("this-month");
+  const monthlyTotals = calculateTotals(
+    filterTransactionsByDate(transactions, start, end),
+  );
+  const netExpense = monthlyTotals.expenses - monthlyTotals.income;
+  const remaining = displayedTotalBudgeted - monthlyTotals.expenses;
+  const utilization =
+    displayedTotalBudgeted > 0
+      ? (monthlyTotals.expenses / displayedTotalBudgeted) * 100
+      : 0;
 
   return (
     <div className="space-y-6 animate-in">
@@ -51,7 +63,7 @@ export const Budgets = () => {
                   Total Budgeted
                 </p>
                 <p className="mt-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                  {formatCurrency(totalBudgeted)}
+                  {formatCurrency(displayedTotalBudgeted)}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
@@ -68,7 +80,7 @@ export const Budgets = () => {
                   Total Spent
                 </p>
                 <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(totalSpent)}
+                  {formatCurrency(monthlyTotals.expenses)}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
@@ -85,7 +97,7 @@ export const Budgets = () => {
                   Remaining
                 </p>
                 <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(totalBudgeted - totalSpent)}
+                  {formatCurrency(remaining)}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
@@ -102,10 +114,7 @@ export const Budgets = () => {
                   Utilization
                 </p>
                 <p className="mt-1 text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                  {totalBudgeted > 0
-                    ? ((totalSpent / totalBudgeted) * 100).toFixed(1)
-                    : 0}
-                  %
+                  {utilization}%
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
@@ -115,78 +124,6 @@ export const Budgets = () => {
           </CardContent>
         </Card>
       </div>
-
-      {overallBudget && (
-        <Card className="border-primary-200 dark:border-primary-800 mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
-                  <Target className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                    Overall Monthly Budget
-                  </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Total budget across all categories
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                  {formatCurrency(overallProgress.spent)} /{" "}
-                  {formatCurrency(overallBudget.amount)}
-                </p>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  {formatCurrency(overallProgress.remaining)} remaining
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  overallProgress.isOverBudget
-                    ? "bg-red-500"
-                    : overallProgress.isNearLimit
-                      ? "bg-yellow-500"
-                      : "bg-primary-600"
-                }`}
-                style={{
-                  width: `${Math.min(overallProgress.percentage, 100)}%`,
-                }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1">
-                {overallProgress.isOverBudget && (
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                )}
-                {overallProgress.isNearLimit &&
-                  !overallProgress.isOverBudget && (
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                  )}
-                {!overallProgress.isOverBudget &&
-                  !overallProgress.isNearLimit && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
-                <span className="font-medium">
-                  {overallProgress.percentage.toFixed(1)}% used
-                </span>
-              </span>
-              <span
-                className={`font-medium ${overallProgress.isOverBudget ? "text-red-600" : overallProgress.isNearLimit ? "text-yellow-600" : "text-green-600"}`}
-              >
-                {overallProgress.isOverBudget
-                  ? "Over Budget"
-                  : overallProgress.isNearLimit
-                    ? "Near Limit"
-                    : "On Track"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <BudgetList />
     </div>

@@ -1,6 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Badge } from "../ui/Badge";
-import { formatCurrency } from "../../utils/helpers";
+import {
+  calculateBudgetProgress,
+  filterTransactionsByDate,
+  formatCurrency,
+  getDateRange,
+} from "../../utils/helpers";
+import { endOfMonth, startOfMonth, subMonths } from "date-fns";
 import {
   TrendingUp,
   TrendingDown,
@@ -78,39 +84,84 @@ export const StatCard = ({
 };
 
 export const DashboardStats = ({
-  totals,
-  savingsRate,
-  budgets,
-  transactions,
+  budgets = [],
+  transactions = [],
+  monthlyComparison = [],
 }) => {
-  const overallBudget = budgets.find((b) => !b.category);
-  const budgetProgress = overallBudget?.progress || {
-    spent: 0,
-    remaining: 0,
-    percentage: 0,
-  };
+  const { start, end } = getDateRange("this-month");
+  const currentMonthTransactions = filterTransactionsByDate(
+    transactions,
+    start,
+    end,
+  );
+  const previousMonth = subMonths(new Date(), 1);
+  const previousMonthTransactions = filterTransactionsByDate(
+    transactions,
+    startOfMonth(previousMonth),
+    endOfMonth(previousMonth),
+  );
+  const currentMonth = monthlyComparison.find((month) => {
+    const [year, monthNumber] = month.monthKey.split("-").map(Number);
+    const now = new Date();
+    return year === now.getFullYear() && monthNumber === now.getMonth() + 1;
+  });
+  const previousMonthStats = monthlyComparison.find((month) => {
+    const [year, monthNumber] = month.monthKey.split("-").map(Number);
+    return (
+      year === previousMonth.getFullYear() &&
+      monthNumber === previousMonth.getMonth() + 1
+    );
+  });
 
-  const monthlyIncome = totals.income;
-  const monthlyExpenses = totals.expenses;
-  const monthlyBalance = totals.balance;
+  const monthlyIncome = currentMonth?.income || 0;
+  const monthlyExpenses = currentMonth?.expenses || 0;
+  const prevMonthIncome = previousMonthStats?.income || 0;
+  const prevMonthExpenses = previousMonthStats?.expenses || 0;
+  const currentBalance = monthlyIncome - monthlyExpenses;
+  const previousBalance = prevMonthIncome - prevMonthExpenses;
+  const hasPreviousMonthTransactions =
+    previousMonthTransactions.length > 0;
 
-  const prevMonthIncome = 5200;
-  const prevMonthExpenses = 2800;
-  const prevMonthBalance = prevMonthIncome - prevMonthExpenses;
+  const overallBudget = budgets.find((budget) => !budget.category);
+  const categoryBudgets = budgets.filter((budget) => budget.category);
+  const currentRemaining = overallBudget
+    ? calculateBudgetProgress(overallBudget, currentMonthTransactions).remaining
+    : categoryBudgets.reduce(
+        (sum, budget) =>
+          sum +
+          calculateBudgetProgress(budget, currentMonthTransactions).remaining,
+        0,
+      );
+  const previousRemaining = overallBudget
+    ? overallBudget.amount - prevMonthExpenses
+    : categoryBudgets.reduce((sum, budget) => {
+        const categoryExpenses = previousMonthTransactions
+          .filter(
+            (transaction) =>
+              transaction.type === "expense" &&
+              transaction.category === budget.category,
+          )
+          .reduce((total, transaction) => total + transaction.amount, 0);
+        return sum + budget.amount - categoryExpenses;
+      }, 0);
 
-  const incomeChange =
+  const percentageChange = (current, previous) =>
+    !hasPreviousMonthTransactions || previous === 0
+      ? 0
+      : ((current - previous) / Math.abs(previous)) * 100;
+  const incomeChange = percentageChange(monthlyIncome, prevMonthIncome);
+  const expenseChange = -percentageChange(monthlyExpenses, prevMonthExpenses);
+  const remainingChange = percentageChange(currentRemaining, previousRemaining);
+  const currentSavingsRate =
+    monthlyIncome > 0 ? (currentBalance / monthlyIncome) * 100 : 0;
+  const previousSavingsRate =
     prevMonthIncome > 0
-      ? ((monthlyIncome - prevMonthIncome) / prevMonthIncome) * 100
+      ? (previousBalance / prevMonthIncome) * 100
       : 0;
-  const expenseChange =
-    prevMonthExpenses > 0
-      ? ((monthlyExpenses - prevMonthExpenses) / prevMonthExpenses) * 100
-      : 0;
-  const balanceChange =
-    prevMonthBalance !== 0
-      ? ((monthlyBalance - prevMonthBalance) / Math.abs(prevMonthBalance)) * 100
-      : 0;
-  const savingsChange = 2.5;
+  const savingsChange = percentageChange(
+    currentSavingsRate,
+    previousSavingsRate,
+  );
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -132,15 +183,15 @@ export const DashboardStats = ({
       />
       <StatCard
         title="Remaining Budget"
-        value={formatCurrency(budgetProgress.remaining)}
-        change={balanceChange}
+        value={formatCurrency(currentRemaining)}
+        change={remainingChange}
         changeLabel="vs last month"
         icon={Wallet}
         variant="default"
       />
       <StatCard
         title="Savings Rate"
-        value={`${savingsRate.toFixed(1)}%`}
+        value={`${currentSavingsRate.toFixed(1)}%`}
         change={savingsChange}
         changeLabel="vs last month"
         icon={PiggyBank}

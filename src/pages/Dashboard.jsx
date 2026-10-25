@@ -1,3 +1,4 @@
+import { getIcon } from "../utils/icons";
 import { useMemo } from "react";
 import { useTransactions } from "../context/TransactionContext";
 import { useBudgets, useBudgetCalculations } from "../context/BudgetContext";
@@ -48,6 +49,7 @@ import {
 
 export const Dashboard = () => {
   const {
+    transactions,
     filteredTransactions,
     filters,
     setFilters,
@@ -59,7 +61,7 @@ export const Dashboard = () => {
   } = useTransactions();
   const { budgets } = useBudgets();
   const { budgetProgress, overallBudget, categoryBudgets, overallProgress } =
-    useBudgetCalculations(filteredTransactions);
+    useBudgetCalculations(transactions);
 
   const insights = useMemo(
     () => generateInsights(filteredTransactions, budgets),
@@ -117,10 +119,9 @@ export const Dashboard = () => {
       </div>
 
       <DashboardStats
-        totals={totals}
-        savingsRate={totals.savingsRate}
         budgets={budgets}
-        transactions={filteredTransactions}
+        transactions={transactions}
+        monthlyComparison={monthlyComparison}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -178,7 +179,7 @@ export const Dashboard = () => {
                         (c) => c.id === txn.category,
                       );
                       const Icon = catInfo?.icon
-                        ? require("lucide-react").default[catInfo.icon]
+                        ? getIcon(catInfo.icon)
                         : null;
                       return (
                         <tr
@@ -263,7 +264,7 @@ export const Dashboard = () => {
             ) : (
               insights.map((insight, index) => {
                 const Icon = insight.icon
-                  ? require("lucide-react").default[insight.icon]
+                  ? getIcon(insight.icon)
                   : null;
                 const iconColors = {
                   success:

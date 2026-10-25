@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
@@ -26,18 +26,50 @@ import {
 } from "lucide-react";
 
 export const Settings = () => {
-  const { user, updateProfile, isLoading } = useAuth();
+  const { user, updateProfile, getProfile, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: user?.name || "",
+    name: user?.user_metadata?.full_name || "",
     email: user?.email || "",
-    currency: user?.currency || "USD",
-    locale: user?.locale || "en-US",
-    theme: user?.theme || "system",
+    currency: "INR",
+    language: "en-US",
   });
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      const result = await getProfile();
+      if (!isMounted) return;
+
+      if (result.success && result.profile) {
+        setFormData((current) => ({
+          ...current,
+          name: result.profile.name || user?.user_metadata?.full_name || "",
+          email: result.profile.email || user?.email || "",
+          currency: result.profile.currency || "INR",
+          language: result.profile.language || "en-US",
+        }));
+      } else if (!result.success) {
+        setErrors({ general: result.error });
+      }
+
+      setIsProfileLoading(false);
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [getProfile, user]);
 
   const validate = () => {
     const newErrors = {};
@@ -54,25 +86,50 @@ export const Settings = () => {
     if (!validate()) return;
 
     setSuccessMessage("");
-    const result = await updateProfile(formData);
+    setErrors({});
+    setIsSaving(true);
 
-    if (result.success) {
-      setSuccessMessage("Profile updated successfully!");
-    } else {
-      setSuccessMessage("Update failed. Please try again.");
+    try {
+      const result = await updateProfile(formData);
+      if (result.success) {
+        setSuccessMessage(result.warning || "Profile updated successfully!");
+      } else {
+        setErrors({ general: result.error || "Profile update failed." });
+      }
+    } catch (error) {
+      setErrors({
+        general: error.message || "Profile update failed. Please try again.",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteAccount = () => {
+    setErrors({});
     setDeletingAccount(true);
   };
 
-  const confirmDeleteAccount = () => {
-    // In a real app, this would call an API
-    // For demo, we'll just clear localStorage
-    localStorage.removeItem("spend_analyzer_user");
-    localStorage.removeItem("spend_analyzer_demo");
-    navigate("/login");
+  const confirmDeleteAccount = async () => {
+    setErrors({});
+    setIsDeletingAccount(true);
+
+    try {
+      const result = await deleteAccount();
+      if (!result.success) {
+        setErrors({ general: result.error || "Could not delete account." });
+        return;
+      }
+
+      setDeletingAccount(false);
+      navigate("/login", { replace: true });
+    } catch (error) {
+      setErrors({
+        general: error.message || "Could not delete account.",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   return (
@@ -104,6 +161,16 @@ export const Settings = () => {
           </div>
         )}
 
+        {errors.general && (
+          <div
+            className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
+            role="alert"
+          >
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <span>{errors.general}</span>
+          </div>
+        )}
+
         <Card>
           <CardContent className="p-6">
             <div className="space-y-6">
@@ -132,6 +199,7 @@ export const Settings = () => {
                   leftIcon={<User className="h-4 w-4" />}
                   autoComplete="name"
                   required
+                  disabled={isProfileLoading}
                 />
 
                 <Input
@@ -146,6 +214,7 @@ export const Settings = () => {
                   leftIcon={<Mail className="h-4 w-4" />}
                   autoComplete="email"
                   required
+                  disabled
                 />
 
                 <div className="grid grid-cols-2 gap-4">
@@ -159,7 +228,9 @@ export const Settings = () => {
                         setFormData({ ...formData, currency: e.target.value })
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+                      disabled={isProfileLoading}
                     >
+                      <option value="INR">INR - Indian Rupee</option>
                       <option value="USD">USD - US Dollar</option>
                       <option value="EUR">EUR - Euro</option>
                       <option value="GBP">GBP - British Pound</option>
@@ -173,11 +244,12 @@ export const Settings = () => {
                       Language
                     </label>
                     <select
-                      value={formData.locale}
+                      value={formData.language}
                       onChange={(e) =>
-                        setFormData({ ...formData, locale: e.target.value })
+                        setFormData({ ...formData, language: e.target.value })
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+                      disabled={isProfileLoading}
                     >
                       <option value="en-US">English (US)</option>
                       <option value="es-ES">Español (España)</option>
@@ -188,73 +260,12 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                    Theme Preference
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="theme-system"
-                        value="system"
-                        checked={formData.theme === "system"}
-                        onChange={(e) =>
-                          setFormData({ ...formData, theme: e.target.value })
-                        }
-                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <label
-                        htmlFor="theme-system"
-                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                      >
-                        System
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="theme-light"
-                        value="light"
-                        checked={formData.theme === "light"}
-                        onChange={(e) =>
-                          setFormData({ ...formData, theme: e.target.value })
-                        }
-                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <label
-                        htmlFor="theme-light"
-                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                      >
-                        Light
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="theme-dark"
-                        value="dark"
-                        checked={formData.theme === "dark"}
-                        onChange={(e) =>
-                          setFormData({ ...formData, theme: e.target.value })
-                        }
-                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <label
-                        htmlFor="theme-dark"
-                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                      >
-                        Dark
-                      </label>
-                    </div>
-                  </div>
-                </div>
 
                 <Button
                   type="submit"
                   variant="primary"
                   className="w-full"
-                  loading={isLoading}
+                  loading={isSaving || isProfileLoading}
                 >
                   <SettingsIcon className="h-4 w-4" />
                   Save Changes
@@ -290,7 +301,7 @@ export const Settings = () => {
                     </p>
                     <p className="text-xs text-neutral-400 dark:text-neutral-500">
                       Member since{" "}
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -316,17 +327,23 @@ export const Settings = () => {
               Are you sure you want to delete your account? This action cannot
               be undone and will permanently delete all your data.
             </p>
+            {errors.general && (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {errors.general}
+              </p>
+            )}
             <div className="flex justify-end gap-3">
               <Button
                 variant="secondary"
                 onClick={() => setDeletingAccount(false)}
+                disabled={isDeletingAccount}
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 onClick={confirmDeleteAccount}
-                loading={deletingAccount}
+                loading={isDeletingAccount}
               >
                 Delete Account
               </Button>

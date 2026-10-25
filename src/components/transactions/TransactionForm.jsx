@@ -22,6 +22,7 @@ export const TransactionForm = ({
   onSubmit,
   initialData,
   isLoading,
+  submitError,
 }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -77,10 +78,10 @@ export const TransactionForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit({
+      await onSubmit({
         ...formData,
         amount: parseFloat(formData.amount),
       });
@@ -126,8 +127,17 @@ export const TransactionForm = ({
       onClose={onClose}
       title={initialData ? "Edit Transaction" : "Add Transaction"}
       size="lg"
+      blurBackdrop={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {submitError && (
+          <div
+            className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            role="alert"
+          >
+            {submitError}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Title"

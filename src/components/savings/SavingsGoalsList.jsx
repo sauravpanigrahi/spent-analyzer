@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { Modal } from "../ui/Modal";
+import { useState, useEffect } from "react";
+import { Modal, ConfirmDialog } from "../ui/Modal";
 import { formatCurrency } from "../../utils/helpers";
 import {
   Plus,
@@ -315,7 +316,7 @@ export const SavingsGoalsList = () => {
         </div>
       </Modal>
 
-      <Modal
+      <ConfirmDialog
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
@@ -328,7 +329,6 @@ export const SavingsGoalsList = () => {
   );
 };
 
-import { useState } from "react";
 import { formatDate } from "../../utils/helpers";
 
 const SavingsGoalForm = ({ initialData, onSubmit, onClose }) => {

@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export const Dropdown = ({
   trigger,
   items,
   align = "right",
+  direction = "down",
   className = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -35,7 +38,9 @@ export const Dropdown = ({
       </div>
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 min-w-[160px] bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-lg overflow-hidden animate-in ${
+          className={`absolute z-50 min-w-[160px] bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-lg overflow-hidden animate-in ${
+            direction === "up" ? "bottom-full mb-2" : "top-full mt-2"
+          } ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -44,6 +49,9 @@ export const Dropdown = ({
               key={index}
               onClick={() => {
                 item.onClick?.();
+                if (item.href) {
+                  navigate(item.href);
+                }
                 setIsOpen(false);
               }}
               className={`w-full px-4 py-2.5 text-sm text-left text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-2 ${item.disabled ? "opacity-50 pointer-events-none" : ""} ${item.destructive ? "text-red-600 dark:text-red-400" : ""}`}

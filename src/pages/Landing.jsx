@@ -1,20 +1,17 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../DB/supabaseclient";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import {
   ArrowRight,
-  CheckCircle2,
   BarChart3,
   CreditCard,
   Target,
   PiggyBank,
   Shield,
-  Users,
   Zap,
-  Globe,
-  Lock,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 
 const features = [
@@ -44,7 +41,8 @@ const features = [
   {
     icon: Shield,
     title: "Secure & Private",
-    description: "Your data stays in your browser. No database, no tracking.",
+    description:
+      "Your financial data is protected by authenticated, user-scoped access.",
   },
   {
     icon: Zap,
@@ -54,14 +52,79 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "10K+", label: "Active Users" },
-  { value: "50K+", label: "Transactions Tracked" },
-  { value: "$2M+", label: "Money Managed" },
-  { value: "99%", label: "User Satisfaction" },
-];
-
 export const Landing = () => {
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [platformStats, setPlatformStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState("");
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadPlatformStats = async () => {
+      const { data, error } = await supabase.rpc("get_public_platform_stats");
+
+      if (!isCurrent) return;
+      if (error) {
+        setStatsError(error.message);
+        setStatsLoading(false);
+        return;
+      }
+
+      const stats = Array.isArray(data) ? data[0] : data;
+      if (
+        !stats ||
+        !Number.isFinite(Number(stats.registered_users)) ||
+        !Number.isFinite(Number(stats.transactions_tracked)) ||
+        !Number.isFinite(Number(stats.money_managed))
+      ) {
+        setStatsError("Supabase returned invalid platform statistics.");
+        setStatsLoading(false);
+        return;
+      }
+
+      setPlatformStats(stats);
+      setStatsLoading(false);
+    };
+
+    loadPlatformStats().catch((error) => {
+      if (isCurrent) {
+        setStatsError(error.message || "Could not load platform statistics.");
+        setStatsLoading(false);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const formattedStats = platformStats
+    ? [
+        {
+          value: new Intl.NumberFormat("en-US").format(
+            Number(platformStats.registered_users),
+          ),
+          label: "Registered Users",
+        },
+        {
+          value: new Intl.NumberFormat("en-US").format(
+            Number(platformStats.transactions_tracked),
+          ),
+          label: "Transactions Tracked",
+        },
+        {
+          value: new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            notation: "compact",
+            maximumFractionDigits: 1,
+          }).format(Number(platformStats.money_managed)),
+          label: "Money Managed",
+        },
+      ]
+    : [];
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800">
@@ -88,24 +151,31 @@ export const Landing = () => {
               >
                 How It Works
               </Link>
-              <Link
-                to="#pricing"
-                className="text-sm font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
-              >
-                Pricing
-              </Link>
             </div>
             <div className="flex items-center gap-3">
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button variant="primary" size="sm">
-                  Get Started Free
-                </Button>
-              </Link>
+              {!isAuthLoading &&
+                (isAuthenticated ? (
+                  <Link to="/dashboard">
+                    <Button variant="primary" size="sm">
+                      {user?.name?.trim() ||
+                        user?.email?.split("@")[0] ||
+                        "Dashboard"}
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login">
+                      <Button variant="ghost" size="sm">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/signup">
+                      <Button variant="primary" size="sm">
+                        Get Started Free
+                      </Button>
+                    </Link>
+                  </>
+                ))}
             </div>
           </div>
         </div>
@@ -128,32 +198,25 @@ export const Landing = () => {
               </h1>
               <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto animate-in">
                 A modern expense tracker with beautiful dashboards, smart
-                budgets, and actionable insights. No database required — your
-                data stays private in your browser.
+                budgets, and actionable insights. Sign in to securely save and
+                access your transactions across sessions.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in">
-                <Link to="/signup">
+                <Link to={isAuthenticated ? "/dashboard" : "/signup"}>
                   <Button
                     variant="primary"
                     size="lg"
                     className="w-full sm:w-auto"
                     rightIcon={<ArrowRight className="h-5 w-5" />}
                   >
-                    Start Free — No Credit Card
-                  </Button>
-                </Link>
-                <Link to="/dashboard">
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    View Demo Dashboard
+                    {isAuthenticated
+                      ? "Open Dashboard"
+                      : "Start Free — No Credit Card"}
                   </Button>
                 </Link>
               </div>
               <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400 animate-in">
-                Demo mode available • No account required • Data stored locally
+                Secure account access • Your data is private to you
               </p>
             </div>
           </div>
@@ -161,17 +224,37 @@ export const Landing = () => {
 
         <section className="py-16 bg-white dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {(statsLoading
+                ? [
+                    { value: "...", label: "Registered Users" },
+                    { value: "...", label: "Transactions Tracked" },
+                    { value: "...", label: "Money Managed" },
+                  ]
+                : formattedStats
+              ).map((stat) => (
+                <div key={stat.label} className="text-center">
                   <div className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                     {stat.value}
                   </div>
                   <div className="text-neutral-600 dark:text-neutral-400">
                     {stat.label}
                   </div>
+                  {stat.label === "Money Managed" && platformStats && (
+                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Total value of saved transactions
+                    </div>
+                  )}
                 </div>
               ))}
+              {statsError && (
+                <p
+                  className="col-span-full text-center text-sm text-red-600 dark:text-red-400"
+                  role="status"
+                >
+                  Live platform statistics are unavailable: {statsError}
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -268,29 +351,18 @@ export const Landing = () => {
                 Ready to Take Control?
               </h2>
               <p className="text-lg text-primary-100 mb-8 max-w-2xl mx-auto">
-                Join thousands of users who have transformed their financial
-                habits with Spend Analyzer. Start free today — no credit card
-                required.
+                Track your spending, manage budgets, and understand your
+                financial habits. Create an account to get started.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to="/signup">
+                <Link to={isAuthenticated ? "/dashboard" : "/signup"}>
                   <Button
                     variant="secondary"
                     size="lg"
                     className="w-full sm:w-auto bg-white text-primary-600 hover:bg-primary-50"
                     rightIcon={<ArrowRight className="h-5 w-5" />}
                   >
-                    Get Started Free
-                  </Button>
-                </Link>
-                <Link to="/dashboard">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full sm:w-auto border-white text-white hover:bg-primary-500"
-                    rightIcon={<ArrowRight className="h-5 w-5" />}
-                  >
-                    Try Demo
+                    {isAuthenticated ? "Open Dashboard" : "Get Started Free"}
                   </Button>
                 </Link>
               </div>

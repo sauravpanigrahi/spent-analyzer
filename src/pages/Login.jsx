@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate,useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -22,40 +22,53 @@ import {
 export const Login = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [formData, setFormData] = useState({
-    email: "",
+    email: location.state?.email || "",
     password: "",
     remember: false,
   });
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-
+  const [message, setMessage] = useState(location.state?.message || "");
   const validate = () => {
     const newErrors = {};
-    if (!formData.email) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = "Invalid email format";
-    if (!formData.password) newErrors.password = "Password is required";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validate()) return;
 
     setError("");
-    const result = await login(
-      formData.email,
-      formData.password,
-      formData.remember,
-    );
+    setMessage("");
 
-    if (result.success) {
-      navigate("/dashboard");
-    } else {
+    const result = await login(formData.email.trim(), formData.password);
+
+    if (!result.success) {
       setError(result.error || "Login failed");
+      return;
+    }
+
+    if (result.requiresProfileSetup) {
+      navigate("/profile-setup", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
     }
   };
 
@@ -89,6 +102,14 @@ export const Login = () => {
 
         <Card>
           <CardContent className="p-6">
+            {message && (
+              <div
+                className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                role="status"
+              >
+                {message}
+              </div>
+            )}
             {error && (
               <div
                 className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-2 text-sm"
@@ -185,7 +206,7 @@ export const Login = () => {
               </Button>
             </form>
 
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
@@ -230,7 +251,7 @@ export const Login = () => {
               <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center mt-2">
                 Email: demo@spendanalyzer.com • Password: demo1234
               </p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -249,7 +270,7 @@ export const Login = () => {
             to="/dashboard"
             className="text-sm text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400"
           >
-            ← Back to Dashboard (Demo)
+            ← Back to Dashboard
           </Link>
         </div>
       </div>

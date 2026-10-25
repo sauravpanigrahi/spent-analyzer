@@ -8,18 +8,12 @@ import {
   PiggyBank,
   Settings,
   Shield,
-  Bell,
   ChevronLeft,
   ChevronRight,
-  Menu,
   User,
   LogOut,
-  Moon,
-  Sun,
-  Monitor,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
 import { Button } from "../ui/Button";
 import { Avatar } from "../ui/Avatar";
 import { Dropdown } from "../ui/Dropdown";
@@ -40,17 +34,9 @@ const bottomNavigation = [
 export const Sidebar = ({ isCollapsed, onToggle }) => {
   const location = useLocation();
   const { user, logout, isDemoMode } = useAuth();
-  const { resolvedTheme, toggleTheme } = useTheme();
 
   const userMenuItems = [
-    { label: "Profile", icon: User, onClick: () => {}, href: "/settings" },
-    { label: "Security", icon: Shield, onClick: () => {}, href: "/security" },
-    {
-      label: "Theme",
-      icon: resolvedTheme === "dark" ? Sun : Moon,
-      onClick: toggleTheme,
-    },
-    { label: "Demo Mode", icon: Monitor, disabled: true },
+    { label: "Profile", icon: User, href: "/settings" },
     { label: "Logout", icon: LogOut, onClick: logout, destructive: true },
   ];
 
@@ -65,7 +51,7 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
         <div className="flex h-16 items-center justify-between px-4 border-b border-neutral-200 dark:border-neutral-800">
           {!isCollapsed && (
             <Link
-              to="/dashboard"
+              to="/"
               className="flex items-center gap-2"
               aria-label="Spend Analyzer Home"
             >
@@ -174,20 +160,32 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
               <Dropdown
                 trigger={
                   <Button variant="ghost" size="sm" className="p-1">
-                    <Bell className="h-4 w-4" />
+                    <User className="h-4 w-4" />
                   </Button>
                 }
                 items={userMenuItems}
+                direction="up"
               />
             </div>
           ) : (
-            <div className="flex justify-center">
-              <Avatar
-                name={user?.name || "User"}
-                src={user?.avatar}
-                size="sm"
-              />
-            </div>
+            <Dropdown
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1"
+                  aria-label="Open account menu"
+                >
+                  <Avatar
+                    name={user?.name || "User"}
+                    src={user?.avatar}
+                    size="sm"
+                  />
+                </Button>
+              }
+              items={userMenuItems}
+              direction="up"
+            />
           )}
         </div>
       </div>

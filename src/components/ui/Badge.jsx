@@ -1,3 +1,4 @@
+import { getIcon } from "../../utils/icons";
 import { forwardRef } from "react";
 
 export const Badge = forwardRef(
@@ -27,8 +28,9 @@ export const Badge = forwardRef(
     };
 
     const sizes = {
-      sm: "px-2 py-0.5 text-xs",
       md: "px-2.5 py-0.5 text-xs",
+      xs: "px-1.5 py-0 text-[10px]",
+      sm: "px-2 py-0.5 text-xs",
       lg: "px-3 py-1 text-sm",
     };
 
@@ -64,7 +66,7 @@ export const StatusBadge = ({ status, className = "" }) => {
   };
 
   const cfg = config[status] || config.pending;
-  const Icon = cfg.icon ? require(`lucide-react`).default[cfg.icon] : null;
+  const Icon = cfg.icon ? getIcon(cfg.icon) : null;
 
   return (
     <Badge

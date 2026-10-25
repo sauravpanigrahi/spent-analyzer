@@ -1,7 +1,9 @@
+import { getIcon } from "../../utils/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge, StatusBadge } from "../ui/Badge";
-import { Modal } from "../ui/Modal";
+import { useState, useEffect } from "react";
+import { Modal, ConfirmDialog } from "../ui/Modal";
 import { formatCurrency, calculateBudgetProgress } from "../../utils/helpers";
 import { getCategoryById } from "../../data/mockData";
 import {
@@ -18,9 +20,10 @@ import { useTransactions } from "../../context/TransactionContext";
 
 export const BudgetList = () => {
   const { budgets, deleteBudget, addBudget, updateBudget } = useBudgets();
-  const { filteredTransactions } = useTransactions();
-  const { budgetProgress, overallBudget, categoryBudgets, overallProgress } =
-    useBudgetCalculations(filteredTransactions);
+  const { transactions } = useTransactions();
+  const { budgetProgress, categoryBudgets } =
+    useBudgetCalculations(transactions);
+  const overallBudgets = budgetProgress.filter((budget) => !budget.category);
   const [editingBudget, setEditingBudget] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -73,8 +76,11 @@ export const BudgetList = () => {
         </Button>
       </div>
 
-      {overallBudget && (
-        <Card className="border-primary-200 dark:border-primary-800">
+      {overallBudgets.map((budget) => (
+        <Card
+          key={budget.id}
+          className="border-primary-200 dark:border-primary-800"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -83,7 +89,7 @@ export const BudgetList = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                    Overall Monthly Budget
+                    {budget.name || "Overall Budget"}
                   </h3>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     Total budget across all categories
@@ -92,44 +98,62 @@ export const BudgetList = () => {
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                  {formatCurrency(overallProgress.spent)} /{" "}
-                  {formatCurrency(overallBudget.amount)}
+                  {formatCurrency(budget.progress.spent)} /{" "}
+                  {formatCurrency(budget.amount)}
                 </p>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  {formatCurrency(overallProgress.remaining)} remaining
+                  {formatCurrency(budget.progress.remaining)} remaining
                 </p>
               </div>
             </div>
             <div className="mt-4 h-3 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  overallProgress.isOverBudget
+                  budget.progress.isOverBudget
                     ? "bg-red-500"
-                    : overallProgress.isNearLimit
+                    : budget.progress.isNearLimit
                       ? "bg-yellow-500"
                       : "bg-primary-600"
                 }`}
                 style={{
-                  width: `${Math.min(overallProgress.percentage, 100)}%`,
+                  width: `${Math.min(budget.progress.percentage, 100)}%`,
                 }}
               />
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
-              <StatusBadge status={overallProgress.status} />
+              <StatusBadge status={budget.progress.status} />
               <span className="font-medium">
-                {overallProgress.percentage.toFixed(1)}% used
+                {budget.progress.percentage.toFixed(1)}% used
               </span>
+            </div>
+            <div className="mt-3 flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEdit(budget)}
+                aria-label={`Edit ${budget.name || "overall budget"}`}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(budget.id)}
+                aria-label={`Delete ${budget.name || "overall budget"}`}
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
             </div>
           </CardContent>
         </Card>
-      )}
+      ))}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categoryBudgets.map((budget) => {
           const progress = budget.progress;
           const catInfo = getCategoryById(budget.category);
           const Icon = catInfo?.icon
-            ? require("lucide-react").default[catInfo.icon]
+            ? getIcon(catInfo.icon)
             : null;
 
           return (
@@ -277,7 +301,7 @@ export const BudgetList = () => {
         />
       </Modal>
 
-      <Modal
+      <ConfirmDialog
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
@@ -290,14 +314,12 @@ export const BudgetList = () => {
   );
 };
 
-import { useState } from "react";
-
 const BudgetForm = ({ initialData, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
     name: "",
     amount: "",
     period: "monthly",
-    category: "",
+    category: "food",
     alertThreshold: 80,
   });
 
@@ -315,7 +337,7 @@ const BudgetForm = ({ initialData, onSubmit, onClose }) => {
         name: "",
         amount: "",
         period: "monthly",
-        category: "",
+        category: "food",
         alertThreshold: 80,
       });
     }

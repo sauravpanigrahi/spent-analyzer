@@ -112,6 +112,27 @@ Preview the production build:
 npm run preview
 ```
 
+### Supabase data setup
+
+The app requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in
+its environment. Apply both SQL migrations in `supabase/migrations/` to the
+project's database before using transactions, profile setup, or live homepage
+statistics. They create the user-owned transactions table and row-level
+security policies, and provide aggregate-only platform statistics. The public
+stats function returns registered-user and transaction counts plus the sum of
+saved transaction amounts; it does not expose user or transaction details.
+
+Account deletion also requires deploying the Edge Function:
+
+```bash
+supabase functions deploy delete-account
+```
+
+Configure `SUPABASE_SERVICE_ROLE_KEY` as an Edge Function secret in the Supabase
+project. Never put this key in a `VITE_` variable or browser code. Until the
+function is deployed, account deletion reports an error and does not pretend
+the account was removed.
+
 ## Usage
 
 ### Authentication

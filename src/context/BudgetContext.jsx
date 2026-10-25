@@ -6,51 +6,65 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import { mockBudgets, mockSavingsGoals } from "../data/mockData";
+import { useAuth } from "./AuthContext";
 import {
   calculateBudgetProgress,
-  filterTransactionsByDate,
-  getDateRange,
   generateId,
 } from "../utils/helpers";
 
 const BudgetContext = createContext(null);
 
 export const BudgetProvider = ({ children }) => {
-  const [budgets, setBudgets] = useState(() => {
-    const saved = localStorage.getItem("spend_analyzer_budgets");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return mockBudgets;
-      }
-    }
-    return mockBudgets;
-  });
-
-  const [savingsGoals, setSavingsGoals] = useState(() => {
-    const saved = localStorage.getItem("spend_analyzer_savings_goals");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return mockSavingsGoals;
-      }
-    }
-    return mockSavingsGoals;
-  });
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [budgets, setBudgets] = useState([]);
+  const [savingsGoals, setSavingsGoals] = useState([]);
+  const [loadedUserId, setLoadedUserId] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("spend_analyzer_budgets", JSON.stringify(budgets));
-  }, [budgets]);
+    if (isAuthLoading) return;
+
+    if (!user?.id) {
+      setBudgets([]);
+      setSavingsGoals([]);
+      setLoadedUserId(null);
+      return;
+    }
+
+    const userId = user.id;
+    const loadUserData = (key) => {
+      const saved = localStorage.getItem(`${key}:${userId}`);
+      if (!saved) return [];
+
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error(`Could not read saved ${key} for this account.`, error);
+        return [];
+      }
+    };
+
+    setLoadedUserId(null);
+    setBudgets(loadUserData("spend_analyzer_budgets"));
+    setSavingsGoals(loadUserData("spend_analyzer_savings_goals"));
+    setLoadedUserId(userId);
+  }, [isAuthLoading, user?.id]);
 
   useEffect(() => {
+    if (!user?.id || loadedUserId !== user.id) return;
+
     localStorage.setItem(
-      "spend_analyzer_savings_goals",
+      `spend_analyzer_budgets:${user.id}`,
+      JSON.stringify(budgets),
+    );
+    localStorage.setItem(
+      `spend_analyzer_savings_goals:${user.id}`,
       JSON.stringify(savingsGoals),
     );
-  }, [savingsGoals]);
+  }, [budgets, loadedUserId, savingsGoals, user?.id]);
+
+  const visibleBudgets = loadedUserId === user?.id ? budgets : [];
+  const visibleSavingsGoals = loadedUserId === user?.id ? savingsGoals : [];
 
   const addBudget = useCallback((budget) => {
     const newBudget = {
@@ -103,8 +117,8 @@ export const BudgetProvider = ({ children }) => {
   return (
     <BudgetContext.Provider
       value={{
-        budgets,
-        savingsGoals,
+        budgets: visibleBudgets,
+        savingsGoals: visibleSavingsGoals,
         addBudget,
         updateBudget,
         deleteBudget,

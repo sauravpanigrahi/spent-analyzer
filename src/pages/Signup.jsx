@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+
 import {
   Card,
   CardContent,
@@ -54,10 +55,10 @@ export const Signup = () => {
   };
 
   const getStrengthColor = (strength) => {
-    if (strength < 30) return "bg-red-500";
-    if (strength < 60) return "bg-yellow-500";
-    if (strength < 80) return "bg-blue-500";
-    return "bg-green-500";
+    if (strength < 30) return "#ef4444";
+    if (strength < 60) return "#eab308";
+    if (strength < 80) return "#3b82f6";
+    return "#22c55e";
   };
 
   const validate = () => {
@@ -81,16 +82,28 @@ export const Signup = () => {
 
     setError("");
     const result = await signup(
-      formData.name,
-      formData.email,
+      formData.name.trim(),
+      formData.email.trim(),
       formData.password,
     );
 
-    if (result.success) {
-      navigate("/dashboard");
-    } else {
-      setError(result.error || "Signup failed");
+    if (!result.success) {
+      setError(result.error || "Signup failed. Please try again.");
+      return;
     }
+
+    if (result.requiresEmailConfirmation) {
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Account created! Please verify your email, then log in.",
+          email: formData.email,
+        },
+      });
+      return;
+    }
+
+    navigate("/profile-setup", { replace: true });
   };
 
   const handlePasswordChange = (e) => {
@@ -301,7 +314,7 @@ export const Signup = () => {
               </Button>
             </form>
 
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
@@ -328,7 +341,7 @@ export const Signup = () => {
                   GitHub
                 </Button>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -347,7 +360,7 @@ export const Signup = () => {
             to="/dashboard"
             className="text-sm text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400"
           >
-            ← Back to Dashboard (Demo)
+            ← Back to Dashboard
           </Link>
         </div>
       </div>

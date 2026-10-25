@@ -1,3 +1,4 @@
+import { getIcon } from "../../utils/icons";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import { useTransactions } from "../../context/TransactionContext";
 
-export const TransactionList = () => {
+export const TransactionList = ({ onEdit }) => {
   const {
     filteredTransactions,
     filters,
@@ -32,12 +33,24 @@ export const TransactionList = () => {
 
   const [deleteId, setDeleteId] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = (id) => setDeleteId(id);
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId) {
-      deleteTransaction(deleteId);
-      setDeleteId(null);
+      setDeleteError("");
+      setIsDeleting(true);
+      try {
+        const result = await deleteTransaction(deleteId);
+        if (result.success) {
+          setDeleteId(null);
+        } else {
+          setDeleteError(result.error);
+        }
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -180,9 +193,6 @@ export const TransactionList = () => {
           >
             Export CSV
           </Button>
-          <Button variant="primary" size="sm" onClick={() => {}}>
-            Add Transaction
-          </Button>
         </div>
       </div>
 
@@ -291,7 +301,7 @@ export const TransactionList = () => {
                   filteredTransactions.map((txn) => {
                     const catInfo = getCategoryInfo(txn.category);
                     const Icon = catInfo.icon
-                      ? require("lucide-react").default[catInfo.icon]
+                      ? getIcon(catInfo.icon)
                       : null;
                     return (
                       <tr
@@ -367,7 +377,7 @@ export const TransactionList = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {}}
+                              onClick={() => onEdit && onEdit(txn)}
                               aria-label="Edit transaction"
                             >
                               <Edit className="h-4 w-4" />
@@ -418,12 +428,20 @@ export const TransactionList = () => {
 
       <ConfirmDialog
         isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onClose={() => {
+          setDeleteId(null);
+          setDeleteError("");
+        }}
         onConfirm={confirmDelete}
         title="Delete Transaction"
-        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        description={
+          deleteError ||
+          "Are you sure you want to delete this transaction? This action cannot be undone."
+        }
         confirmText="Delete"
         variant="destructive"
+        blurBackdrop={false}
+        loading={isDeleting}
       />
 
       <Modal

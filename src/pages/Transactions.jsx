@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
 import { formatCurrency } from "../utils/helpers";
 import {
   Plus,
@@ -28,47 +29,72 @@ export const Transactions = () => {
     exportTransactions,
     importTransactions,
     addTransaction,
+    updateTransaction,
+    loadError: transactionLoadError,
+    isLoading: isTransactionsLoading,
   } = useTransactions();
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [transactionError, setTransactionError] = useState("");
+  const [isSavingTransaction, setIsSavingTransaction] = useState(false);
 
   const handleAdd = () => {
+    setTransactionError("");
     setEditingTransaction(null);
     setShowForm(true);
   };
 
   const handleEdit = (txn) => {
+    setTransactionError("");
     setEditingTransaction(txn);
     setShowForm(true);
   };
 
-  const handleFormSubmit = (data) => {
-    if (editingTransaction) {
-      // Update would be handled by TransactionContext
-      // For now, we'll just add new
-      addTransaction(data);
-    } else {
-      addTransaction(data);
+  const handleFormSubmit = async (data) => {
+    setTransactionError("");
+    setIsSavingTransaction(true);
+
+    try {
+      const result = editingTransaction
+        ? await updateTransaction(editingTransaction.id, data)
+        : await addTransaction(data);
+
+      if (!result.success) {
+        setTransactionError(result.error);
+        return result;
+      }
+
+      setShowForm(false);
+      setEditingTransaction(null);
+      return result;
+    } finally {
+      setIsSavingTransaction(false);
     }
-    setShowForm(false);
-    setEditingTransaction(null);
   };
 
-  const handleImport = (e) => {
+  const handleImport = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setImportFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
-        const result = importTransactions(event.target.result);
-        setImportResult(result);
-        if (result.success) {
-          setShowImport(false);
-          setImportFile(null);
-        }
+        importTransactions(event.target.result)
+          .then((result) => {
+            setImportResult(result);
+            if (result.success) {
+              setShowImport(false);
+              setImportFile(null);
+            }
+          })
+          .catch((error) => {
+            setImportResult({
+              success: false,
+              error: error.message || "Could not import transactions.",
+            });
+          });
       };
       reader.readAsText(file);
     }
@@ -192,7 +218,16 @@ export const Transactions = () => {
         </Card>
       </div>
 
-      <TransactionList />
+      {(transactionLoadError || transactionError) && (
+        <div
+          className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          role="alert"
+        >
+          {transactionLoadError || transactionError}
+        </div>
+      )}
+
+      <TransactionList onEdit={handleEdit} />
 
       <TransactionForm
         isOpen={showForm}
@@ -202,6 +237,8 @@ export const Transactions = () => {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingTransaction}
+        isLoading={isSavingTransaction || isTransactionsLoading}
+        submitError={transactionError}
       />
 
       <Modal
@@ -259,5 +296,3 @@ export const Transactions = () => {
     </div>
   );
 };
-
-import { Modal } from "../components/ui/Modal";

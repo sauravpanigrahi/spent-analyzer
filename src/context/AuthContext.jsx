@@ -5,150 +5,450 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { mockUser } from "../data/mockData";
+import { supabase } from "../DB/supabaseclient";
 
 const AuthContext = createContext(null);
+const normalizeUser = (authUser) =>
+  authUser
+    ? { ...authUser, name: authUser.user_metadata?.full_name || "" }
+    : null;
+const clearLegacyLocalData = () => {
+  [
+    "spend_analyzer_transactions",
+    "spend_analyzer_budgets",
+    "spend_analyzer_savings_goals",
+    "spend_analyzer_user",
+    "spend_analyzer_demo",
+    "userProfile",
+  ].forEach((key) => localStorage.removeItem(key));
+};
+const setActiveUserStorageScope = (userId, clearWhenSignedOut = false) => {
+  const previousUserId = sessionStorage.getItem(
+    "spend_analyzer_active_user_id",
+  );
 
-const DEMO_CREDENTIALS = {
-  email: "demo@spendanalyzer.com",
-  password: "demo1234",
+  if (userId && previousUserId && previousUserId !== userId) {
+    clearLegacyLocalData();
+  } else if (!userId && clearWhenSignedOut) {
+    clearLegacyLocalData();
+  }
+
+  if (userId) {
+    sessionStorage.setItem("spend_analyzer_active_user_id", userId);
+  } else {
+    sessionStorage.removeItem("spend_analyzer_active_user_id");
+  }
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
-    const initAuth = () => {
-      const savedUser = localStorage.getItem("spend_analyzer_user");
-      const savedDemo = localStorage.getItem("spend_analyzer_demo");
+    let mounted = true;
 
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          setUser(parsed);
-          setIsAuthenticated(true);
-        } catch {
-          localStorage.removeItem("spend_analyzer_user");
-        }
-      } else if (savedDemo === "true") {
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        setIsDemoMode(true);
-      }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+
+      setActiveUserStorageScope(
+        session?.user?.id,
+        event === "SIGNED_OUT",
+      );
+      setUser(normalizeUser(session?.user));
+      setIsAuthenticated(!!session?.user);
       setIsLoading(false);
+    });
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+
+      const session = error ? null : data.session;
+
+      setActiveUserStorageScope(session?.user?.id);
+      setUser(normalizeUser(session?.user));
+      setIsAuthenticated(!!session?.user);
+      setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
     };
-    initAuth();
   }, []);
 
-  const login = useCallback(async (email, password, remember = false) => {
+  const login = useCallback(async (email, password) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    if (
-      email === DEMO_CREDENTIALS.email &&
-      password === DEMO_CREDENTIALS.password
-    ) {
-      const demoUser = { ...mockUser, email };
-      setUser(demoUser);
-      setIsAuthenticated(true);
-      setIsDemoMode(true);
-      if (remember) {
-        localStorage.setItem("spend_analyzer_demo", "true");
-        localStorage.setItem("spend_analyzer_user", JSON.stringify(demoUser));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
       }
-      setIsLoading(false);
-      return { success: true, isDemo: true };
-    }
 
-    setIsLoading(false);
-    return {
-      success: false,
-      error:
-        "Invalid credentials. Use demo@spendanalyzer.com / demo1234 for demo access.",
-    };
+      const { data: profile, error: profileError } = await supabase
+        .from("profilesetup")
+        .select("id")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        return { success: false, error: profileError.message };
+      }
+
+      return {
+        success: true,
+        user: data.user,
+        requiresProfileSetup: !profile,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Login failed",
+      };
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const signup = useCallback(async (name, email, password) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name,
-      email,
-      avatar: null,
-      currency: "USD",
-      locale: "en-US",
-      theme: "system",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+        },
+      });
 
-    setUser(newUser);
-    setIsAuthenticated(true);
-    setIsDemoMode(false);
-    localStorage.setItem("spend_analyzer_user", JSON.stringify(newUser));
-    localStorage.removeItem("spend_analyzer_demo");
+      if (error) {
+        return { success: false, error: error.message };
+      }
 
-    setIsLoading(false);
+      return {
+        success: true,
+        user: data.user,
+        session: data.session,
+        requiresEmailConfirmation: !data.session,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Signup failed",
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      setUser(null);
+      setIsAuthenticated(false);
+      sessionStorage.removeItem("spend_analyzer_active_user_id");
+      clearLegacyLocalData();
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Logout failed",
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  
+  const updateProfile = useCallback(async (updates) => {
+    try {
+      const {
+        data: { user: currentUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        return {
+          success: false,
+          error: `Authentication failed: ${authError.message}`,
+        };
+      }
+
+      if (!currentUser) {
+        return { success: false, error: "Please log in again." };
+      }
+
+      const profileUpdates = {};
+      if (updates.name !== undefined) {
+        profileUpdates.name = updates.name.trim();
+      }
+      if (updates.language !== undefined || updates.locale !== undefined) {
+        profileUpdates.language = updates.language ?? updates.locale;
+      }
+      if (updates.currency !== undefined) {
+        profileUpdates.currency = updates.currency;
+      }
+
+      if (Object.keys(profileUpdates).length === 0) {
+        return { success: false, error: "No profile changes were provided." };
+      }
+
+      const { data, error } = await supabase
+        .from("profilesetup")
+        .update(profileUpdates)
+        .eq("id", currentUser.id)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: "No profile row found. Complete profile setup first.",
+        };
+      }
+
+      if (updates.name !== undefined) {
+        const { data: updatedUser, error: metadataError } =
+          await supabase.auth.updateUser({
+            data: { full_name: updates.name.trim() },
+          });
+
+        if (metadataError) {
+          return {
+            success: true,
+            profile: data,
+            warning: `Profile saved, but account name sync failed: ${metadataError.message}`,
+          };
+        }
+
+        if (updatedUser.user) {
+          setUser(normalizeUser(updatedUser.user));
+        }
+      }
+      localStorage.setItem(
+        `spend_analyzer_profile_${currentUser.id}`,
+        JSON.stringify(data),
+      );
+      return { success: true, profile: data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Profile update failed.",
+      };
+    }
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    try {
+      const {
+        data: { user: currentUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        return { success: false, error: authError.message };
+      }
+      if (!currentUser) {
+        return { success: false, error: "Please log in again." };
+      }
+
+      const { error: functionError } =
+        await supabase.functions.invoke("delete-account");
+
+      if (functionError) {
+        return { success: false, error: functionError.message };
+      }
+
+      const { error: signOutError } = await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      localStorage.removeItem(`spend_analyzer_budgets:${currentUser.id}`);
+      localStorage.removeItem(
+        `spend_analyzer_savings_goals:${currentUser.id}`,
+      );
+      localStorage.removeItem(`spend_analyzer_profile_${currentUser.id}`);
+      sessionStorage.removeItem("spend_analyzer_active_user_id");
+      setUser(null);
+      setIsAuthenticated(false);
+
+      return {
+        success: true,
+        warning: signOutError?.message,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Could not delete account.",
+      };
+    }
+  }, []);
+
+  const getProfile = useCallback(async () => {
+    try {
+      const {
+        data: { user: currentUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        return { success: false, error: authError.message };
+      }
+
+      if (!currentUser) {
+        return { success: false, error: "Please log in again." };
+      }
+
+      const { data, error } = await supabase
+        .from("profilesetup")
+        .select("name, email, language, currency")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, profile: data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Could not load your profile.",
+      };
+    }
+  }, []);
+
+const profileadd = useCallback(
+  async (email, name, language, currency) => {
+    try {
+      const {
+        data: { user: currentUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) {
+        return { success: false, error: authError.message };
+      }
+
+      if (!currentUser) {
+        return {
+          success: false,
+          error: "Please log in before setting up your profile.",
+        };
+      }
+
+      const { data, error } = await supabase
+        .from("profilesetup")
+        .upsert(
+          {
+            id: currentUser.id,
+            name,
+            email: currentUser.email || email,
+            language,
+            currency,
+          },
+          { onConflict: "id" },
+        )
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      localStorage.setItem(
+        `spend_analyzer_profile_${currentUser.id}`,
+        JSON.stringify(data),
+      );
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || "Profile setup failed.",
+      };
+    }
+  },
+  [],
+);
+
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user?.email) {
+      return {
+        success: false,
+        error: "Please log in again.",
+      };
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      return {
+        success: false,
+        error: "Current password is incorrect.",
+      };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
     return { success: true };
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsDemoMode(false);
-    localStorage.removeItem("spend_analyzer_user");
-    localStorage.removeItem("spend_analyzer_demo");
-  }, []);
-
-  const updateProfile = useCallback(
-    (updates) => {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem("spend_analyzer_user", JSON.stringify(updatedUser));
-      return { success: true };
-    },
-    [user],
-  );
-
-  const changePassword = useCallback(
-    async (currentPassword, newPassword) => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      if (isDemoMode) {
-        return {
-          success: false,
-          error:
-            "Cannot change password in demo mode. Please sign up for a real account.",
-        };
-      }
-      return { success: true };
-    },
-    [isDemoMode],
-  );
-
   const forgotPassword = useCallback(async (email) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    if (email === DEMO_CREDENTIALS.email) {
-      return {
-        success: true,
-        message: "Demo mode: Password reset email would be sent in production.",
-      };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
     }
+
     return {
       success: true,
-      message: "If an account exists, a reset link has been sent.",
+      message: "If the account exists, a reset email will be sent.",
     };
   }, []);
 
-  const resetPassword = useCallback(async (token, newPassword) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      success: true,
-      message: "Password has been reset. Please log in with your new password.",
-    };
+  const resetPassword = useCallback(async (_token, newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
   }, []);
 
   return (
@@ -157,14 +457,16 @@ export const AuthProvider = ({ children }) => {
         user,
         isAuthenticated,
         isLoading,
-        isDemoMode,
         login,
         signup,
         logout,
+        deleteAccount,
         updateProfile,
+        getProfile,
         changePassword,
         forgotPassword,
         resetPassword,
+        profileadd,
       }}
     >
       {children}
@@ -174,8 +476,10 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 };

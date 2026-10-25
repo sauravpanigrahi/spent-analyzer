@@ -1,46 +1,28 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Menu,
   Sun,
   Moon,
   Monitor,
-  Bell,
   Search,
   User,
-  Shield,
   LogOut,
-  AlertTriangle,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/Button";
 import { Avatar } from "../ui/Avatar";
 import { Dropdown } from "../ui/Dropdown";
-import { Input } from "../ui/Input";
 
 export const Header = ({ onMenuClick }) => {
   const location = useLocation();
-  const { resolvedTheme, toggleTheme, theme } = useTheme();
-  const { user, logout, isDemoMode } = useAuth();
+  const { resolvedTheme, toggleTheme, setThemeMode, theme } = useTheme();
+  const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   const userMenuItems = [
-    { label: "Profile", icon: User, onClick: () => {}, href: "/settings" },
-    { label: "Security", icon: Shield, onClick: () => {}, href: "/security" },
-    {
-      label:
-        theme === "system"
-          ? "System Theme"
-          : resolvedTheme === "dark"
-            ? "Light Mode"
-            : "Dark Mode",
-      icon: resolvedTheme === "dark" ? Sun : Moon,
-      onClick: toggleTheme,
-    },
-    { label: "Demo Mode", icon: Monitor, disabled: true },
+    { label: "Profile", icon: User, href: "/settings" },
     { label: "Logout", icon: LogOut, onClick: logout, destructive: true },
   ];
 
@@ -110,40 +92,6 @@ export const Header = ({ onMenuClick }) => {
               <Moon className="h-5 w-5" />
             )}
           </button>
-
-          <Dropdown
-            trigger={
-              <Button variant="ghost" size="sm" className="relative p-1">
-                <Bell className="h-5 w-5 text-neutral-500" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-medium flex items-center justify-center">
-                  3
-                </span>
-              </Button>
-            }
-            items={[
-              {
-                label: "Budget alert: Food & Dining near limit",
-                icon: AlertTriangle,
-                onClick: () => {},
-              },
-              {
-                label: "New transaction added: Grocery Shopping",
-                icon: CreditCard,
-                onClick: () => {},
-              },
-              {
-                label: "Monthly report is ready",
-                icon: FileText,
-                onClick: () => {},
-              },
-              {
-                label: "View all notifications",
-                icon: Bell,
-                onClick: () => {},
-                className: "text-primary-600 font-medium",
-              },
-            ]}
-          />
 
           <Dropdown
             trigger={

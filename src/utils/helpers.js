@@ -11,13 +11,36 @@ import {
 } from "date-fns";
 import { getCategoryById } from "../data/mockData";
 
-export const formatCurrency = (amount, currency = "USD", locale = "en-US") => {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+export const formatCurrency = (amount, currency = "", language = "") => {
+  const activeUserId = sessionStorage.getItem("spend_analyzer_active_user_id");
+  let profile = {};
+
+  if (activeUserId) {
+    try {
+      profile = JSON.parse(
+        localStorage.getItem(`spend_analyzer_profile_${activeUserId}`) || "{}",
+      );
+    } catch (error) {
+      console.error("Could not read saved currency preferences.", error);
+    }
+  }
+
+  const selectedCurrency = currency || profile.currency || "INR";
+
+  const selectedLanguage =
+    language || profile.language || profile.locale || "en-IN";
+
+  try {
+    return new Intl.NumberFormat(selectedLanguage, {
+      style: "currency",
+      currency: selectedCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch (error) {
+    console.error("Currency formatting failed:", error);
+    return `${selectedCurrency} ${Number(amount).toFixed(2)}`;
+  }
 };
 
 export const formatNumber = (number, locale = "en-US") => {
@@ -276,6 +299,14 @@ export const exportToCSV = (transactions) => {
     "Notes",
     "Recurring",
   ];
+  const escapeCell = (value) => {
+    let cell = value == null ? "" : String(value);
+    if (/^[\u0000-\u0020]*[=+\-@]/.test(cell)) {
+      cell = `'${cell}`;
+    }
+    return `"${cell.replace(/"/g, '""')}"`;
+  };
+
   const rows = transactions.map((txn) => [
     txn.date,
     txn.title,
@@ -287,39 +318,87 @@ export const exportToCSV = (transactions) => {
     txn.isRecurring ? "Yes" : "No",
   ]);
   const csv = [
-    headers.join(","),
-    ...rows.map((r) => r.map((v) => `"${v}"`).join(",")),
+    headers.map(escapeCell).join(","),
+    ...rows.map((row) => row.map(escapeCell).join(",")),
   ].join("\n");
   return csv;
 };
 
 export const parseCSV = (csvText) => {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) return [];
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
 
-  const headers = lines[0].split(",").map((h) => h.replace(/"/g, "").trim());
+  for (let i = 0; i < csvText.length; i += 1) {
+    const character = csvText[i];
+
+    if (inQuotes) {
+      if (character === '"' && csvText[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (character === '"') {
+        inQuotes = false;
+      } else {
+        field += character;
+      }
+    } else if (character === '"' && field.length === 0) {
+      inQuotes = true;
+    } else if (character === ",") {
+      row.push(field);
+      field = "";
+    } else if (character === "\n" || character === "\r") {
+      if (character === "\r" && csvText[i + 1] === "\n") i += 1;
+      row.push(field);
+      if (row.some((value) => value.trim())) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    if (row.some((value) => value.trim())) rows.push(row);
+  }
+
+  if (inQuotes || rows.length < 2) return [];
+
+  const headers = rows[0].map((header) =>
+    header.replace(/^\uFEFF/, "").toLowerCase().replace(/[^a-z]/g, ""),
+  );
   const transactions = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.replace(/"/g, "").trim());
-    if (values.length >= headers.length) {
-      const txn = {};
-      headers.forEach((header, index) => {
-        txn[header.toLowerCase().replace(" ", "")] = values[index];
-      });
-      transactions.push({
-        id: `txn-${Date.now()}-${i}`,
-        title: txn.title || "",
-        amount: parseFloat(txn.amount) || 0,
-        type: txn.type || "expense",
-        category: txn.category || "other",
-        date: txn.date || new Date().toISOString().split("T")[0],
-        paymentMethod: txn.paymentmethod || "cash",
-        notes: txn.notes || "",
-        isRecurring: txn.recurring?.toLowerCase() === "yes",
-        recurringFrequency: null,
-      });
+  for (const values of rows.slice(1)) {
+    const txn = Object.fromEntries(
+      headers.map((header, index) => [header, values[index]?.trim() || ""]),
+    );
+    const amount = Number(txn.amount);
+    const type = txn.type.toLowerCase();
+    const date = txn.date || new Date().toISOString().split("T")[0];
+
+    if (
+      !txn.title ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !["income", "expense"].includes(type) ||
+      Number.isNaN(Date.parse(date))
+    ) {
+      continue;
     }
+
+    transactions.push({
+      title: txn.title,
+      amount,
+      type,
+      category: txn.category || "other",
+      date,
+      paymentMethod: txn.paymentmethod || "cash",
+      notes: txn.notes || "",
+      isRecurring: txn.recurring?.toLowerCase() === "yes",
+      recurringFrequency: null,
+    });
   }
 
   return transactions;

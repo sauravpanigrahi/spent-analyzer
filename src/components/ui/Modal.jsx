@@ -10,6 +10,7 @@ export const Modal = ({
   children,
   size = "md",
   className = "",
+  blurBackdrop = true,
 }) => {
   const overlayRef = useRef(null);
   const contentRef = useRef(null);
@@ -42,14 +43,14 @@ export const Modal = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
         ref={overlayRef}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-in"
+        className={`fixed inset-0 z-0 bg-black/50 ${blurBackdrop ? "backdrop-blur-sm" : ""} animate-in`}
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="relative z-10 flex min-h-full items-center justify-center p-4 pointer-events-none">
         <div
           ref={contentRef}
-          className={`w-full ${sizes[size]} bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 animate-in ${className}`}
+          className={`w-full ${sizes[size]} pointer-events-auto bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 animate-in ${className}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? "modal-title" : undefined}
@@ -104,6 +105,7 @@ export const ConfirmDialog = ({
   cancelText = "Cancel",
   variant = "destructive",
   loading = false,
+  blurBackdrop = true,
 }) => {
   return (
     <Modal
@@ -112,6 +114,7 @@ export const ConfirmDialog = ({
       title={title}
       description={description}
       size="sm"
+      blurBackdrop={blurBackdrop}
     >
       <div className="flex justify-end gap-3">
         <button
