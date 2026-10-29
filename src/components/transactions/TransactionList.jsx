@@ -23,8 +23,11 @@ import {
   notifyError,
   notifySuccess,
 } from "../../utils/notifications";
+import { useTranslation } from "react-i18next";
+import { getCategoryLabel, getPaymentMethodLabel } from "../../utils/labels";
 
 export const TransactionList = ({ onEdit }) => {
+  const { t } = useTranslation();
   const {
     filteredTransactions,
     filters,
@@ -82,38 +85,45 @@ export const TransactionList = ({ onEdit }) => {
   const getCategoryInfo = (categoryId) => {
     const cat = getCategoryById(categoryId);
     return cat
-      ? { name: cat.name, color: cat.color, icon: cat.icon }
+      ? {
+          name: getCategoryLabel(cat.id, cat.name, t),
+          color: cat.color,
+          icon: cat.icon,
+        }
       : { name: categoryId, color: "#6366f1", icon: "MoreHorizontal" };
   };
 
   const getPaymentMethodInfo = (methodId) => {
     const method = getPaymentMethodById(methodId);
-    return method ? method.name : methodId;
+    return method ? getPaymentMethodLabel(method.id, method.name, t) : methodId;
   };
 
   const categoryOptions = [
-    { value: "all", label: "All Categories" },
-    ...categories.map((c) => ({ value: c.id, label: c.name })),
+    { value: "all", label: t("transactions.allCategories") },
+    ...categories.map((c) => ({
+      value: c.id,
+      label: getCategoryLabel(c.id, c.name, t),
+    })),
   ];
 
   const typeOptions = [
-    { value: "all", label: "All Types" },
-    { value: "income", label: "Income" },
-    { value: "expense", label: "Expense" },
+    { value: "all", label: t("common.allTypes") },
+    { value: "income", label: t("common.income") },
+    { value: "expense", label: t("common.expenses") },
   ];
 
   const dateRangeOptions = [
-    { value: "this-week", label: "This Week" },
-    { value: "this-month", label: "This Month" },
-    { value: "last-3-months", label: "Last 3 Months" },
-    { value: "last-6-months", label: "Last 6 Months" },
-    { value: "this-year", label: "This Year" },
-    { value: "custom", label: "Custom Range" },
+    { value: "this-week", label: t("transactions.thisWeek") },
+    { value: "this-month", label: t("transactions.thisMonth") },
+    { value: "last-3-months", label: t("transactions.lastThreeMonths") },
+    { value: "last-6-months", label: t("transactions.lastSixMonths") },
+    { value: "this-year", label: t("transactions.thisYear") },
+    { value: "custom", label: t("transactions.customRange") },
   ];
 
   const sortOptions = [
-    { value: "date", label: "Date" },
-    { value: "amount", label: "Amount" },
+    { value: "date", label: t("common.date") },
+    { value: "amount", label: t("common.amount") },
   ];
 
   const hasActiveFilters =
@@ -127,7 +137,7 @@ export const TransactionList = ({ onEdit }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
-            placeholder="Search transactions..."
+            placeholder={t("common.search")}
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             className="max-w-xs"

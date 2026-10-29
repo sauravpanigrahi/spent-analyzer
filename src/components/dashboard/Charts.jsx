@@ -18,6 +18,8 @@ import {
   ComposedChart,
 } from "recharts";
 import { formatCurrency, formatDateShort } from "../../utils/helpers";
+import { useTranslation } from "react-i18next";
+import { getCategoryLabel } from "../../utils/labels";
 
 const COLORS = [
   "#22c55e",
@@ -31,12 +33,13 @@ const COLORS = [
 ];
 
 export const MonthlyTrendChart = ({ data }) => {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <Card className="h-[300px]">
         <CardContent className="flex h-full items-center justify-center">
           <p className="text-neutral-500 dark:text-neutral-400">
-            No data available
+            {t("common.noData")}
           </p>
         </CardContent>
       </Card>
@@ -46,7 +49,7 @@ export const MonthlyTrendChart = ({ data }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Monthly Expense Trends</CardTitle>
+        <CardTitle>{t("charts.monthlyExpenseTrends")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -84,19 +87,19 @@ export const MonthlyTrendChart = ({ data }) => {
                 labelFormatter={(label) => label}
                 formatter={(value, name) => [
                   formatCurrency(value),
-                  name === "income" ? "Income" : "Expenses",
+                  name === "income" ? t("common.income") : t("common.expenses"),
                 ]}
               />
               <Legend
                 wrapperStyle={{ paddingTop: "10px" }}
                 formatter={(value) =>
-                  value === "income" ? "Income" : "Expenses"
+                  value === "income" ? t("common.income") : t("common.expenses")
                 }
               />
               <Area
                 type="monotone"
                 dataKey="income"
-                name="Income"
+                name={t("common.income")}
                 stroke="#22c55e"
                 fill="#22c55e"
                 fillOpacity={0.1}
@@ -106,7 +109,7 @@ export const MonthlyTrendChart = ({ data }) => {
               <Area
                 type="monotone"
                 dataKey="expenses"
-                name="Expenses"
+                name={t("common.expenses")}
                 stroke="#ef4444"
                 fill="#ef4444"
                 fillOpacity={0.1}
@@ -122,12 +125,13 @@ export const MonthlyTrendChart = ({ data }) => {
 };
 
 export const IncomeVsExpenseChart = ({ data }) => {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
       <Card className="h-[300px]">
         <CardContent className="flex h-full items-center justify-center">
           <p className="text-neutral-500 dark:text-neutral-400">
-            No data available
+            {t("common.noData")}
           </p>
         </CardContent>
       </Card>
@@ -137,7 +141,7 @@ export const IncomeVsExpenseChart = ({ data }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Income vs Expenses</CardTitle>
+        <CardTitle>{t("charts.incomeVsExpenses")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -175,20 +179,20 @@ export const IncomeVsExpenseChart = ({ data }) => {
                 labelFormatter={(label) => label}
                 formatter={(value, name) => [
                   formatCurrency(value),
-                  name === "income" ? "Income" : "Expenses",
+                  name === "income" ? t("common.income") : t("common.expenses"),
                 ]}
               />
               <Legend wrapperStyle={{ paddingTop: "10px" }} />
               <Bar
                 dataKey="income"
-                name="Income"
+                name={t("common.income")}
                 fill="#22c55e"
                 radius={[4, 4, 0, 0]}
                 maxBarWidth={40}
               />
               <Bar
                 dataKey="expenses"
-                name="Expenses"
+                name={t("common.expenses")}
                 fill="#ef4444"
                 radius={[4, 4, 0, 0]}
                 maxBarWidth={40}
@@ -202,12 +206,13 @@ export const IncomeVsExpenseChart = ({ data }) => {
 };
 
 export const CategorySpendingChart = ({ categoryTotals, categories }) => {
+  const { t } = useTranslation();
   if (!categoryTotals || categoryTotals.length === 0) {
     return (
       <Card className="h-[300px]">
         <CardContent className="flex h-full items-center justify-center">
           <p className="text-neutral-500 dark:text-neutral-400">
-            No spending data
+            {t("charts.noSpendingData")}
           </p>
         </CardContent>
       </Card>
@@ -216,14 +221,18 @@ export const CategorySpendingChart = ({ categoryTotals, categories }) => {
 
   const chartData = categoryTotals.map((item, index) => ({
     ...item,
-    name: categories.find((c) => c.id === item.category)?.name || item.category,
+    name: getCategoryLabel(
+      item.category,
+      categories.find((c) => c.id === item.category)?.name,
+      t,
+    ),
     color: COLORS[index % COLORS.length],
   }));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Spending by Category</CardTitle>
+        <CardTitle>{t("charts.spendingByCategory")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -266,12 +275,13 @@ export const CategorySpendingChart = ({ categoryTotals, categories }) => {
 };
 
 export const DailySpendingChart = ({ dailyData }) => {
+  const { t } = useTranslation();
   if (!dailyData || dailyData.length === 0) {
     return (
       <Card className="h-[300px]">
         <CardContent className="flex h-full items-center justify-center">
           <p className="text-neutral-500 dark:text-neutral-400">
-            No data available
+            {t("common.noData")}
           </p>
         </CardContent>
       </Card>
@@ -281,7 +291,7 @@ export const DailySpendingChart = ({ dailyData }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daily Spending</CardTitle>
+        <CardTitle>{t("charts.dailySpending")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">

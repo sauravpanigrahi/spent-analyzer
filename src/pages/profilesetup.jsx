@@ -6,8 +6,10 @@ import { Input } from "../components/ui/Input";
 import { Card, CardContent } from "../components/ui/Card";
 import { BarChart3 } from "lucide-react";
 import { notifyError } from "../utils/notifications";
+import { useTranslation } from "react-i18next";
 
 export const ProfileSetup = () => {
+  const { t } = useTranslation();
   const { user, isLoading, profileadd } = useAuth();
   const navigate = useNavigate();
   const submitting = useRef(false);
@@ -77,10 +79,10 @@ export const ProfileSetup = () => {
           </Link>
 
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Set up your profile
+            {t("profileSetup.title")}
           </h1>
           <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-            Choose your preferred language and currency.
+            {t("profileSetup.description")}
           </p>
         </div>
 
@@ -88,9 +90,9 @@ export const ProfileSetup = () => {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Full Name"
+                label={t("common.name")}
                 type="text"
-                placeholder="Your name"
+                placeholder={t("profileSetup.namePlaceholder")}
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -100,7 +102,7 @@ export const ProfileSetup = () => {
               />
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  Currency
+                  {t("common.currency")}
                 </label>
                 <select
                   value={formData.currency}
@@ -121,7 +123,7 @@ export const ProfileSetup = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  Language
+                  {t("common.language")}
                 </label>
                 <select
                   value={formData.language}
@@ -145,7 +147,7 @@ export const ProfileSetup = () => {
                 loading={isLoading || isSaving}
                 disabled={isLoading || isSaving}
               >
-                Save Profile
+                {t("profileSetup.save")}
               </Button>
             </form>
           </CardContent>

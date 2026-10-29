@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
+import { useTranslation } from "react-i18next";
 import { Badge } from "../ui/Badge";
 import {
   calculateBudgetProgress,
@@ -88,6 +89,7 @@ export const DashboardStats = ({
   transactions = [],
   monthlyComparison = [],
 }) => {
+  const { t } = useTranslation();
   const { start, end } = getDateRange("this-month");
   const currentMonthTransactions = filterTransactionsByDate(
     transactions,
@@ -166,34 +168,34 @@ export const DashboardStats = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <StatCard
-        title="Total Income"
+        title={t("common.totalIncome")}
         value={formatCurrency(monthlyIncome)}
         change={incomeChange}
-        changeLabel="vs last month"
+        changeLabel={t("common.vsLastMonth")}
         icon={DollarSign}
         variant="income"
       />
       <StatCard
-        title="Total Expenses"
+        title={t("common.totalExpenses")}
         value={formatCurrency(monthlyExpenses)}
         change={expenseChange}
-        changeLabel="vs last month"
+        changeLabel={t("common.vsLastMonth")}
         icon={CreditCard}
         variant="expense"
       />
       <StatCard
-        title="Remaining Budget"
+        title={t("common.remainingBudget")}
         value={formatCurrency(currentRemaining)}
         change={remainingChange}
-        changeLabel="vs last month"
+        changeLabel={t("common.vsLastMonth")}
         icon={Wallet}
         variant="default"
       />
       <StatCard
-        title="Savings Rate"
+        title={t("common.savingsRate")}
         value={`${currentSavingsRate.toFixed(1)}%`}
         change={savingsChange}
-        changeLabel="vs last month"
+        changeLabel={t("common.vsLastMonth")}
         icon={PiggyBank}
         variant="savings"
       />

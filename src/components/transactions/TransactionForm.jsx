@@ -7,6 +7,8 @@ import { Modal } from "../ui/Modal";
 import { categories, paymentMethods } from "../../data/mockData";
 import { formatCurrency, formatDate } from "../../utils/helpers";
 import { notifyError } from "../../utils/notifications";
+import { useTranslation } from "react-i18next";
+import { getCategoryLabel, getPaymentMethodLabel } from "../../utils/labels";
 import {
   X,
   Calendar,
@@ -24,6 +26,7 @@ export const TransactionForm = ({
   initialData,
   isLoading,
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
@@ -69,11 +72,11 @@ export const TransactionForm = ({
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.title.trim()) newErrors.title = t("validation.titleRequired");
     if (!formData.amount || parseFloat(formData.amount) <= 0)
-      newErrors.amount = "Amount must be greater than 0";
-    if (!formData.category) newErrors.category = "Category is required";
-    if (!formData.date) newErrors.date = "Date is required";
+      newErrors.amount = t("validation.amountRequired");
+    if (!formData.category) newErrors.category = t("validation.categoryRequired");
+    if (!formData.date) newErrors.date = t("validation.dateRequired");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,30 +89,30 @@ export const TransactionForm = ({
         amount: parseFloat(formData.amount),
       });
     } else {
-      notifyError("Please correct the highlighted transaction fields.");
+      notifyError(t("validation.correctTransactionFields"));
     }
   };
 
   const categoryOptions = categories.map((c) => ({
     value: c.id,
-    label: c.name,
+    label: getCategoryLabel(c.id, c.name, t),
   }));
   const paymentOptions = paymentMethods.map((p) => ({
     value: p.id,
-    label: p.name,
+    label: getPaymentMethodLabel(p.id, p.name, t),
   }));
   const recurringOptions = [
-    { value: null, label: "Not recurring" },
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "quarterly", label: "Quarterly" },
-    { value: "yearly", label: "Yearly" },
+    { value: null, label: t("transactions.notRecurring") },
+    { value: "daily", label: t("transactions.daily") },
+    { value: "weekly", label: t("transactions.weekly") },
+    { value: "monthly", label: t("transactions.monthly") },
+    { value: "quarterly", label: t("transactions.quarterly") },
+    { value: "yearly", label: t("transactions.yearly") },
   ];
 
   const typeOptions = [
-    { value: "expense", label: "Expense" },
-    { value: "income", label: "Income" },
+    { value: "expense", label: t("common.expenses") },
+    { value: "income", label: t("common.income") },
   ];
 
   const filteredCategories = categories.filter((c) => {
@@ -127,15 +130,19 @@ export const TransactionForm = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? "Edit Transaction" : "Add Transaction"}
+      title={
+        initialData
+          ? t("transactions.edit")
+          : t("transactions.add")
+      }
       size="lg"
       blurBackdrop={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Title"
-            placeholder="e.g., Grocery Shopping"
+            label={t("transactions.title")}
+            placeholder={t("transactions.titlePlaceholder")}
             value={formData.title}
             onChange={(e) =>
               setFormData({ ...formData, title: e.target.value })
@@ -146,7 +153,7 @@ export const TransactionForm = ({
           />
           <div className="relative">
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Amount
+              {t("common.amount")}
             </label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -173,7 +180,7 @@ export const TransactionForm = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
-            label="Type"
+            label={t("common.type")}
             options={typeOptions}
             value={formData.type}
             onChange={(e) =>
@@ -183,17 +190,17 @@ export const TransactionForm = ({
             leftIcon={<Repeat className="h-4 w-4" />}
           />
           <Select
-            label="Category"
+            label={t("common.category")}
             options={filteredCategories.map((c) => ({
               value: c.id,
-              label: c.name,
+              label: getCategoryLabel(c.id, c.name, t),
             }))}
             value={formData.category}
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
             error={errors.category}
-            placeholder="Select category"
+            placeholder={t("transactions.selectCategory")}
             leftIcon={<Tag className="h-4 w-4" />}
           />
         </div>
@@ -201,7 +208,7 @@ export const TransactionForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Date
+              {t("common.date")}
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -222,7 +229,7 @@ export const TransactionForm = ({
             )}
           </div>
           <Select
-            label="Payment Method"
+            label={t("transactions.paymentMethod")}
             options={paymentOptions}
             value={formData.paymentMethod}
             onChange={(e) =>
@@ -234,7 +241,7 @@ export const TransactionForm = ({
 
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-            Notes (Optional)
+            {t("transactions.notesOptional")}
           </label>
           <textarea
             value={formData.notes}
@@ -243,7 +250,7 @@ export const TransactionForm = ({
             }
             rows={3}
             className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-            placeholder="Add any notes..."
+            placeholder={t("transactions.notesPlaceholder")}
           />
         </div>
 
@@ -265,13 +272,13 @@ export const TransactionForm = ({
             htmlFor="recurring"
             className="text-sm font-medium text-neutral-700 dark:text-neutral-300 cursor-pointer"
           >
-            Recurring Transaction
+            {t("transactions.recurring")}
           </label>
         </div>
 
         {formData.isRecurring && (
           <Select
-            label="Frequency"
+            label={t("transactions.frequency")}
             options={recurringOptions.filter((o) => o.value)}
             value={formData.recurringFrequency}
             onChange={(e) =>
@@ -288,10 +295,11 @@ export const TransactionForm = ({
             onClick={onClose}
             disabled={isLoading}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" variant="primary" loading={isLoading}>
-            {initialData ? "Update" : "Add"} Transaction
+            {initialData ? t("common.update") : t("common.add")}{" "}
+            {t("transactions.title")}
           </Button>
         </div>
       </form>

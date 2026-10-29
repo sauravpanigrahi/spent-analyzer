@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/Button";
 import { Avatar } from "../ui/Avatar";
 import { Dropdown } from "../ui/Dropdown";
+import { useTranslation } from "react-i18next";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -34,10 +35,11 @@ const bottomNavigation = [
 export const Sidebar = ({ isCollapsed, onToggle }) => {
   const location = useLocation();
   const { user, logout, isDemoMode } = useAuth();
+  const { t } = useTranslation();
 
   const userMenuItems = [
-    { label: "Profile", icon: User, href: "/settings" },
-    { label: "Logout", icon: LogOut, onClick: logout, destructive: true },
+    { label: t("navigation.profile"), icon: User, href: "/settings" },
+    { label: t("navigation.logout"), icon: LogOut, onClick: logout, destructive: true },
   ];
 
   return (
@@ -45,7 +47,7 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
       className={`fixed left-0 top-0 z-40 h-screen bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 transition-all duration-300 ease-in-out ${
         isCollapsed ? "w-20" : "w-64"
       }`}
-      aria-label="Main navigation"
+      aria-label={t("navigation.main")}
     >
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center justify-between px-4 border-b border-neutral-200 dark:border-neutral-800">
@@ -53,20 +55,24 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
             <Link
               to="/"
               className="flex items-center gap-2"
-              aria-label="Spend Analyzer Home"
+              aria-label={t("navigation.home")}
             >
               <div className="h-8 w-8 rounded-xl bg-primary-600 flex items-center justify-center">
                 <LayoutDashboard className="h-5 w-5 text-white" />
               </div>
               <span className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
-                Spend Analyzer
+                {t("navigation.home")}
               </span>
             </Link>
           )}
           <button
             onClick={onToggle}
             className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={t(
+              isCollapsed
+                ? "navigation.expandSidebar"
+                : "navigation.collapseSidebar",
+            )}
             aria-expanded={!isCollapsed}
           >
             {isCollapsed ? (
@@ -83,7 +89,7 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
           aria-label="Main"
         >
           <div className="px-3 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-            Main
+            {t("navigation.main")}
           </div>
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -101,19 +107,33 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
                   }
                   ${isCollapsed ? "justify-center" : ""}
                 `}
-                title={isCollapsed ? item.name : undefined}
+                title={
+                  isCollapsed
+                    ? t(`navigation.${item.name === "Savings Goals" ? "savingsGoals" : item.name.toLowerCase()}`)
+                    : undefined
+                }
                 aria-current={isActive ? "page" : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && (
+                  <span>
+                    {t(
+                      `navigation.${item.name === "Savings Goals" ? "savingsGoals" : item.name.toLowerCase()}`,
+                    )}
+                  </span>
+                )}
               </NavLink>
             );
           })}
         </nav>
 
-        <nav className="p-3 space-y-1" role="navigation" aria-label="Settings">
+        <nav
+          className="p-3 space-y-1"
+          role="navigation"
+          aria-label={t("navigation.settings")}
+        >
           <div className="px-3 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-            Settings
+            {t("navigation.settings")}
           </div>
           {bottomNavigation.map((item) => {
             const Icon = item.icon;
@@ -131,11 +151,11 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
                   }
                   ${isCollapsed ? "justify-center" : ""}
                 `}
-                title={isCollapsed ? item.name : undefined}
+                title={isCollapsed ? t(`navigation.${item.name.toLowerCase()}`) : undefined}
                 aria-current={isActive ? "page" : undefined}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && <span>{t(`navigation.${item.name.toLowerCase()}`)}</span>}
               </NavLink>
             );
           })}
@@ -145,16 +165,16 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
           {!isCollapsed ? (
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar
-                name={user?.name || "User"}
+                name={user?.name || t("common.user")}
                 src={user?.avatar}
                 size="md"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                  {user?.name || "User"}
+                  {user?.name || t("common.user")}
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                  {isDemoMode ? "Demo Mode" : user?.email}
+                  {isDemoMode ? t("common.demoMode") : user?.email}
                 </p>
               </div>
               <Dropdown
@@ -174,10 +194,10 @@ export const Sidebar = ({ isCollapsed, onToggle }) => {
                   variant="ghost"
                   size="sm"
                   className="p-1"
-                  aria-label="Open account menu"
+                  aria-label={t("navigation.openAccountMenu")}
                 >
                   <Avatar
-                    name={user?.name || "User"}
+                    name={user?.name || t("common.user")}
                     src={user?.avatar}
                     size="sm"
                   />

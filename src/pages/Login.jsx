@@ -23,8 +23,10 @@ import {
   Lock,
   CheckCircle2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Login = () => {
+  const { t } = useTranslation();
   const { login, resendVerificationEmail, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,13 +59,13 @@ export const Login = () => {
     const newErrors = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = t("validation.emailRequired");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = "Invalid email format";
+      newErrors.email = t("validation.invalidEmail");
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = t("validation.passwordRequired");
     }
 
     setErrors(newErrors);
@@ -74,7 +76,7 @@ export const Login = () => {
     if (isLoading || submitting.current) return;
 
     if (!validate()) {
-      notifyError("Please correct the highlighted sign-in fields.");
+      notifyError(t("validation.correctSigninFields"));
       return;
     }
 
@@ -146,10 +148,10 @@ export const Login = () => {
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Welcome back
+          {t("auth.welcome")}
           </h1>
           <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-            Sign in to your account to continue
+            {t("auth.signInToContinue")}
           </p>
         </div>
 
@@ -174,7 +176,7 @@ export const Login = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Email"
+                label={t("common.email")}
                 type="email"
                 placeholder="you@example.com"
                 value={formData.email}
@@ -189,7 +191,7 @@ export const Login = () => {
 
               <div className="relative">
                 <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Password
+                  {t("auth.password")}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -209,7 +211,9 @@ export const Login = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
                     aria-label={
-                      showPassword ? "Hide password" : "Show password"
+                      showPassword
+                        ? t("auth.hidePassword")
+                        : t("auth.showPassword")
                     }
                   >
                     {showPassword ? (

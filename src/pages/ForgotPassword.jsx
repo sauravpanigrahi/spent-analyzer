@@ -12,8 +12,10 @@ import {
   ArrowLeft,
   RotateCcw,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const ForgotPassword = () => {
+  const { t } = useTranslation();
   const { forgotPassword, isLoading } = useAuth();
   const { secondsRemaining, startCooldown } = useCooldown();
   const submitting = useRef(false);
@@ -79,14 +81,14 @@ export const ForgotPassword = () => {
             className="inline-flex items-center gap-2 text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400 mb-6"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span>Back to Sign In</span>
+            <span>{t("common.backToSignIn")}</span>
           </Link>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-              Forgot Password?
+              {t("auth.forgotPassword")}
             </h1>
             <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-              Enter your email and we'll send you a link to reset your password.
+              {t("auth.forgotPasswordDescription")}
             </p>
           </div>
         </div>
@@ -126,7 +128,7 @@ export const ForgotPassword = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Email"
+                  label={t("common.email")}
                   type="email"
                   placeholder="you@example.com"
                   value={email}
@@ -146,7 +148,7 @@ export const ForgotPassword = () => {
                   <RotateCcw className="h-4 w-4" />
                   {secondsRemaining > 0
                     ? `Try again in ${secondsRemaining}s`
-                    : "Send Reset Link"}
+                    : t("auth.sendResetLink")}
                 </Button>
               </form>
             )}

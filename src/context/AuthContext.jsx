@@ -563,6 +563,9 @@ const profileadd = useCallback(
       } else {
         notifySuccess("Your profile is set up.");
       }
+      window.dispatchEvent(
+        new CustomEvent("spend-analyzer-profile-updated", { detail: data }),
+      );
       return { success: true, data };
     } catch (error) {
       return reportOperationFailure(error, "We couldn't set up your profile.");

@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { TransactionProvider } from "./context/TransactionContext";
 import { BudgetProvider } from "./context/BudgetContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { PreferencesProvider } from "./context/PreferencesContext";
 import {
   AnalyticsConsent,
   GoogleAnalytics,
@@ -17,15 +18,17 @@ export const ApplicationRoot = () => (
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <TransactionProvider>
-            <BudgetProvider>
-              <App />
-              <RouteMetadata />
-              <GoogleAnalytics />
-              <AnalyticsConsent />
-              <GlobalErrorNotifications />
-            </BudgetProvider>
-          </TransactionProvider>
+          <PreferencesProvider>
+            <TransactionProvider>
+              <BudgetProvider>
+                <App />
+                <RouteMetadata />
+                <GoogleAnalytics />
+                <AnalyticsConsent />
+                <GlobalErrorNotifications />
+              </BudgetProvider>
+            </TransactionProvider>
+          </PreferencesProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

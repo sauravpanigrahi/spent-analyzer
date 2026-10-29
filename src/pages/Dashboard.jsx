@@ -26,6 +26,8 @@ import { Badge, StatusBadge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Select } from "../components/ui/Select";
 import { formatCurrency, formatDate } from "../utils/helpers";
+import { useTranslation } from "react-i18next";
+import { getCategoryLabel } from "../utils/labels";
 import {
   TrendingUp,
   TrendingDown,
@@ -48,6 +50,7 @@ import {
 } from "lucide-react";
 
 export const Dashboard = () => {
+  const { t } = useTranslation();
   const {
     transactions,
     filteredTransactions,
@@ -69,12 +72,12 @@ export const Dashboard = () => {
   );
 
   const dateRangeOptions = [
-    { value: "this-week", label: "This Week" },
-    { value: "this-month", label: "This Month" },
-    { value: "last-3-months", label: "Last 3 Months" },
-    { value: "last-6-months", label: "Last 6 Months" },
-    { value: "this-year", label: "This Year" },
-    { value: "custom", label: "Custom Range" },
+    { value: "this-week", label: t("transactions.thisWeek") },
+    { value: "this-month", label: t("transactions.thisMonth") },
+    { value: "last-3-months", label: t("transactions.lastThreeMonths") },
+    { value: "last-6-months", label: t("transactions.lastSixMonths") },
+    { value: "this-year", label: t("transactions.thisYear") },
+    { value: "custom", label: t("transactions.customRange") },
   ];
 
   const { start, end } = getDateRange(filters.dateRange);
@@ -91,10 +94,10 @@ export const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Dashboard
+            {t("navigation.dashboard")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400">
-            Overview of your financial health
+            {t("dashboard.overview")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -105,7 +108,7 @@ export const Dashboard = () => {
               setFilters({ ...filters, dateRange: e.target.value })
             }
             className="w-44"
-            placeholder="Time Range"
+            placeholder={t("dashboard.timeRange")}
             leftIcon={<Calendar className="h-4 w-4" />}
           />
           <Button
@@ -113,7 +116,7 @@ export const Dashboard = () => {
             size="sm"
             leftIcon={<Download className="h-4 w-4" />}
           >
-            Export
+            {t("transactions.export")}
           </Button>
         </div>
       </div>
@@ -140,9 +143,9 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>{t("dashboard.recentTransactions")}</CardTitle>
             <Button variant="ghost" size="sm" onClick={() => {}}>
-              View All
+              {t("dashboard.viewAll")}
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -151,16 +154,16 @@ export const Dashboard = () => {
                 <thead>
                   <tr className="border-b border-neutral-200 dark:border-neutral-800">
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                      Date
+                      {t("common.date")}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                      Transaction
+                      {t("transactions.title")}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                      Category
+                      {t("common.category")}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                      Amount
+                      {t("common.amount")}
                     </th>
                   </tr>
                 </thead>
@@ -169,7 +172,7 @@ export const Dashboard = () => {
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center">
                         <p className="text-neutral-500 dark:text-neutral-400">
-                          No transactions yet
+                          {t("dashboard.noTransactions")}
                         </p>
                       </td>
                     </tr>
@@ -212,7 +215,7 @@ export const Dashboard = () => {
                                 </p>
                                 {txn.isRecurring && (
                                   <Badge variant="info" size="xs">
-                                    Recurring
+                                    {t("transactions.recurring")}
                                   </Badge>
                                 )}
                               </div>
@@ -231,7 +234,11 @@ export const Dashboard = () => {
                                 className="h-1.5 w-1.5 rounded-full"
                                 style={{ backgroundColor: catInfo?.color }}
                               />
-                              {catInfo?.name || txn.category}
+                              {getCategoryLabel(
+                                txn.category,
+                                catInfo?.name,
+                                t,
+                              )}
                             </Badge>
                           </td>
                           <td className="px-6 py-4 text-right">
@@ -254,12 +261,12 @@ export const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Insights</CardTitle>
+            <CardTitle>{t("dashboard.insights")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {insights.length === 0 ? (
               <p className="text-neutral-500 dark:text-neutral-400 text-center py-8">
-                Add transactions to see insights
+                {t("dashboard.addTransactionsForInsights")}
               </p>
             ) : (
               insights.map((insight, index) => {
@@ -314,12 +321,12 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Top Spending Categories</CardTitle>
+            <CardTitle>{t("dashboard.topCategories")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {topCategories.length === 0 ? (
               <p className="text-neutral-500 dark:text-neutral-400 text-center py-8">
-                No spending data
+                {t("charts.noSpendingData")}
               </p>
             ) : (
               topCategories.map((item, index) => {
@@ -340,7 +347,7 @@ export const Dashboard = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                        {catInfo?.name || item.category}
+                        {getCategoryLabel(item.category, catInfo?.name, t)}
                       </p>
                       <div className="h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                         <div
@@ -369,12 +376,12 @@ export const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Budget Progress</CardTitle>
+            <CardTitle>{t("dashboard.budgetProgress")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {categoryBudgets.length === 0 ? (
               <p className="text-neutral-500 dark:text-neutral-400 text-center py-8">
-                No budgets set
+                {t("dashboard.noBudgetsSet")}
               </p>
             ) : (
               categoryBudgets.map((budget) => {

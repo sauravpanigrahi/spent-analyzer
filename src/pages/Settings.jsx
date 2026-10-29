@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { notifyError } from "../utils/notifications";
+import { usePreferences } from "../context/PreferencesContext";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -26,6 +28,8 @@ import {
 
 export const Settings = () => {
   const { user, updateProfile, getProfile, deleteAccount } = useAuth();
+  const { setPreference, currency, language } = usePreferences();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.user_metadata?.full_name || "",
@@ -39,6 +43,15 @@ export const Settings = () => {
   
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handlePreferenceChange = async (key, value) => {
+    setFormData((current) => ({ ...current, [key]: value }));
+    const previousValue = key === "currency" ? currency : language;
+    const result = await setPreference(key, value);
+    if (!result.success) {
+      setFormData((current) => ({ ...current, [key]: previousValue }));
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -82,7 +95,7 @@ export const Settings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) {
-      notifyError("Please correct the highlighted profile fields.");
+      notifyError(t("validation.correctFields"));
       return;
     }
 
@@ -93,7 +106,7 @@ export const Settings = () => {
       const result = await updateProfile(formData);
       if (!result.success) return;
     } catch {
-      notifyError("We couldn't update your profile. Please try again.");
+      notifyError(t("errors.profileUpdate"));
     } finally {
       setIsSaving(false);
     }
@@ -117,7 +130,7 @@ export const Settings = () => {
       setDeletingAccount(false);
       navigate("/login", { replace: true });
     } catch {
-      notifyError("We couldn't delete your account. Please try again.");
+      notifyError(t("errors.accountDelete"));
     } finally {
       setIsDeletingAccount(false);
     }
@@ -132,13 +145,13 @@ export const Settings = () => {
             className="inline-flex items-center gap-2 text-neutral-500 hover:text-primary-600 dark:hover:text-primary-400 mb-6"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span>Back to Dashboard</span>
+            <span>{t("common.backToDashboard")}</span>
           </Link>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Settings
+            {t("settings.title")}
           </h1>
           <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-            Manage your account and preferences
+            {t("settings.description")}
           </p>
         </div>
 
@@ -147,21 +160,21 @@ export const Settings = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                  Profile
+                  {t("settings.profile")}
                 </h2>
                 <Link
                   to="/security"
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
                 >
-                  Security Settings
+                  {t("settings.securitySettings")}
                 </Link>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Full Name"
+                  label={t("common.name")}
                   type="text"
-                  placeholder="John Doe"
+                  placeholder={t("settings.namePlaceholder")}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -174,9 +187,9 @@ export const Settings = () => {
                 />
 
                 <Input
-                  label="Email"
+                  label={t("common.email")}
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("settings.emailPlaceholder")}
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -191,12 +204,12 @@ export const Settings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                      Currency
+                      {t("common.currency")}
                     </label>
                     <select
                       value={formData.currency}
                       onChange={(e) =>
-                        setFormData({ ...formData, currency: e.target.value })
+                        handlePreferenceChange("currency", e.target.value)
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
                       disabled={isProfileLoading}
@@ -212,12 +225,12 @@ export const Settings = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                      Language
+                      {t("common.language")}
                     </label>
                     <select
                       value={formData.language}
                       onChange={(e) =>
-                        setFormData({ ...formData, language: e.target.value })
+                        handlePreferenceChange("language", e.target.value)
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
                       disabled={isProfileLoading}
@@ -239,7 +252,7 @@ export const Settings = () => {
                   loading={isSaving || isProfileLoading}
                 >
                   <SettingsIcon className="h-4 w-4" />
-                  Save Changes
+                  {t("common.saveChanges")}
                 </Button>
               </form>
             </div>
@@ -249,14 +262,14 @@ export const Settings = () => {
         {user && !user.email.includes("demo@spendanalyzer.com") && (
           <Card className="mt-6">
             <CardHeader className="flex items-center justify-between">
-              <CardTitle>Account</CardTitle>
+              <CardTitle>{t("common.account")}</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDeleteAccount}
                 leftIcon={<Trash2 className="h-4 w-4" />}
               >
-                Delete Account
+                {t("common.deleteAccount")}
               </Button>
             </CardHeader>
             <CardContent className="p-6">
@@ -271,15 +284,14 @@ export const Settings = () => {
                       {user.email}
                     </p>
                     <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                      Member since{" "}
+                      {t("common.memberSince")}{" "}
                       {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="border-t border-neutral-200 dark:border-neutral-800 pt-4">
                   <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    Deleting your account will permanently remove all your data.
-                    This action cannot be undone.
+                    {t("settings.deleteWarning")}
                   </p>
                 </div>
               </div>
@@ -290,13 +302,12 @@ export const Settings = () => {
         <Modal
           isOpen={deletingAccount}
           onClose={() => setDeletingAccount(false)}
-          title="Delete Account"
+          title={t("common.deleteAccount")}
           size="md"
         >
           <div className="space-y-4">
             <p className="text-neutral-600 dark:text-neutral-400">
-              Are you sure you want to delete your account? This action cannot
-              be undone and will permanently delete all your data.
+              {t("settings.confirmDelete")}
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -304,14 +315,14 @@ export const Settings = () => {
                 onClick={() => setDeletingAccount(false)}
                 disabled={isDeletingAccount}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
                 onClick={confirmDeleteAccount}
                 loading={isDeletingAccount}
               >
-                Delete Account
+                {t("common.deleteAccount")}
               </Button>
             </div>
           </div>

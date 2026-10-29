@@ -7,6 +7,8 @@ import {
   useMemo,
 } from "react";
 import { useAuth } from "./AuthContext";
+import { usePreferences } from "./PreferencesContext";
+import { convertAmountFromBase } from "../utils/currency";
 import {
   calculateBudgetProgress,
   generateId,
@@ -20,6 +22,7 @@ const BudgetContext = createContext(null);
 
 export const BudgetProvider = ({ children }) => {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { rate, convertToBase } = usePreferences();
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
   const [loadedUserId, setLoadedUserId] = useState(null);
@@ -82,26 +85,56 @@ export const BudgetProvider = ({ children }) => {
     }
   }, [budgets, loadedUserId, savingsGoals, user?.id]);
 
-  const visibleBudgets = loadedUserId === user?.id ? budgets : [];
-  const visibleSavingsGoals = loadedUserId === user?.id ? savingsGoals : [];
+  const visibleBudgets = useMemo(
+    () =>
+      loadedUserId === user?.id
+        ? budgets.map((budget) => ({
+            ...budget,
+            amount: convertAmountFromBase(budget.amount, rate),
+          }))
+        : [],
+    [budgets, loadedUserId, rate, user?.id],
+  );
+  const visibleSavingsGoals = useMemo(
+    () =>
+      loadedUserId === user?.id
+        ? savingsGoals.map((goal) => ({
+            ...goal,
+            targetAmount: convertAmountFromBase(goal.targetAmount, rate),
+            currentAmount: convertAmountFromBase(goal.currentAmount, rate),
+          }))
+        : [],
+    [loadedUserId, rate, savingsGoals, user?.id],
+  );
 
   const addBudget = useCallback((budget) => {
     const newBudget = {
       ...budget,
+      amount: convertToBase(budget.amount),
       id: generateId(),
       alertThreshold: budget.alertThreshold || 80,
     };
     setBudgets((prev) => [...prev, newBudget]);
     notifySuccess("Budget created.");
     return newBudget;
-  }, []);
+  }, [convertToBase]);
 
   const updateBudget = useCallback((id, updates) => {
     setBudgets((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+      prev.map((b) =>
+        b.id === id
+          ? {
+              ...b,
+              ...updates,
+              ...(updates.amount !== undefined
+                ? { amount: convertToBase(updates.amount) }
+                : {}),
+            }
+          : b,
+      ),
     );
     notifySuccess("Budget updated.");
-  }, []);
+  }, [convertToBase]);
 
   const deleteBudget = useCallback((id) => {
     setBudgets((prev) => prev.filter((b) => b.id !== id));
@@ -112,19 +145,33 @@ export const BudgetProvider = ({ children }) => {
     const newGoal = {
       ...goal,
       id: generateId(),
-      currentAmount: goal.currentAmount || 0,
+      targetAmount: convertToBase(goal.targetAmount),
+      currentAmount: convertToBase(goal.currentAmount || 0),
     };
     setSavingsGoals((prev) => [...prev, newGoal]);
     notifySuccess("Savings goal created.");
     return newGoal;
-  }, []);
+  }, [convertToBase]);
 
   const updateSavingsGoal = useCallback((id, updates) => {
     setSavingsGoals((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+      prev.map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              ...updates,
+              ...(updates.targetAmount !== undefined
+                ? { targetAmount: convertToBase(updates.targetAmount) }
+                : {}),
+              ...(updates.currentAmount !== undefined
+                ? { currentAmount: convertToBase(updates.currentAmount) }
+                : {}),
+            }
+          : g,
+      ),
     );
     notifySuccess("Savings goal updated.");
-  }, []);
+  }, [convertToBase]);
 
   const deleteSavingsGoal = useCallback((id) => {
     setSavingsGoals((prev) => prev.filter((g) => g.id !== id));
@@ -134,11 +181,16 @@ export const BudgetProvider = ({ children }) => {
   const addToSavingsGoal = useCallback((id, amount) => {
     setSavingsGoals((prev) =>
       prev.map((g) =>
-        g.id === id ? { ...g, currentAmount: g.currentAmount + amount } : g,
+        g.id === id
+          ? {
+              ...g,
+              currentAmount: g.currentAmount + convertToBase(amount),
+            }
+          : g,
       ),
     );
     notifySuccess("Savings goal contribution added.");
-  }, []);
+  }, [convertToBase]);
 
   return (
     <BudgetContext.Provider

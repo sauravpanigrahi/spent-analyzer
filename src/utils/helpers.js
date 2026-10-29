@@ -11,60 +11,51 @@ import {
 } from "date-fns";
 import { getCategoryById } from "../data/mockData";
 import { notifyWarning } from "./notifications";
+import { getPreferenceSnapshot } from "./preferences";
+import { de, enUS, es, fr, ja } from "date-fns/locale";
 
-export const formatCurrency = (amount, currency = "", language = "") => {
-  let profile = {};
-  try {
-    const activeUserId = sessionStorage.getItem(
-      "spend_analyzer_active_user_id",
-    );
-    if (activeUserId) {
-      profile = JSON.parse(
-        localStorage.getItem(`spend_analyzer_profile_${activeUserId}`) || "{}",
-      );
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error("Could not read saved currency preferences:", error.name);
-    }
-    notifyWarning("Saved currency preferences could not be read.", {
-      toastId: "currency-preferences-read-warning",
-      dedupeForMs: 60000,
-    });
-  }
-
-  const selectedCurrency = currency || profile.currency || "INR";
-
-  const selectedLanguage =
-    language || profile.language || profile.locale || "en-IN";
-
-  try {
-    return new Intl.NumberFormat(selectedLanguage, {
-      style: "currency",
-      currency: selectedCurrency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error("Currency formatting failed:", error.name);
-    }
-    notifyWarning(
-      "Your currency preference couldn't be applied. Showing the amount with its currency code instead.",
-      { toastId: "currency-format-warning", dedupeForMs: 60000 },
-    );
-    return `${selectedCurrency} ${Number(amount).toFixed(2)}`;
-  }
+const dateLocales = {
+  "en-US": enUS,
+  "es-ES": es,
+  "fr-FR": fr,
+  "de-DE": de,
+  "ja-JP": ja,
 };
 
-export const formatNumber = (number, locale = "en-US") => {
-  return new Intl.NumberFormat(locale).format(number);
+export const formatCurrency = (amount, currency = "", language = "") => {
+  const profile = getPreferenceSnapshot();
+  const selectedCurrency = currency || profile.currency || "INR";
+  const selectedLanguage = language || profile.language || "en-IN";
+
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return "—";
+
+  const rate =
+    selectedCurrency === "INR"
+      ? 1
+      : profile.currency === selectedCurrency
+        ? profile.rate
+        : null;
+
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return `${selectedCurrency} —`;
+  }
+
+  return new Intl.NumberFormat(selectedLanguage, {
+    style: "currency",
+    currency: selectedCurrency,
+  }).format(value * rate);
+};
+
+export const formatNumber = (number, locale) => {
+  return new Intl.NumberFormat(locale || getPreferenceSnapshot().language).format(number);
 };
 
 export const formatDate = (date, formatStr = "MMM d, yyyy") => {
   if (!date) return "";
   const d = typeof date === "string" ? parseISO(date) : date;
-  return format(d, formatStr);
+  const { language } = getPreferenceSnapshot();
+  return format(d, formatStr, { locale: dateLocales[language] || enUS });
 };
 
 export const formatDateShort = (date) => formatDate(date, "MMM d");

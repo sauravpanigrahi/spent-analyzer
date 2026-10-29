@@ -18,8 +18,10 @@ import {
 import { useBudgets, useBudgetCalculations } from "../../context/BudgetContext";
 import { useTransactions } from "../../context/TransactionContext";
 import { notifyError } from "../../utils/notifications";
+import { useTranslation } from "react-i18next";
 
 export const BudgetList = () => {
+  const { t } = useTranslation();
   const { budgets, deleteBudget, addBudget, updateBudget } = useBudgets();
   const { transactions } = useTransactions();
   const { budgetProgress, categoryBudgets } =
@@ -62,10 +64,10 @@ export const BudgetList = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Budgets
+            {t("budgets.title")}
           </h2>
           <p className="text-neutral-500 dark:text-neutral-400">
-            Track your spending against budget limits
+            {t("budgets.description")}
           </p>
         </div>
         <Button
@@ -73,7 +75,7 @@ export const BudgetList = () => {
           onClick={handleAdd}
           leftIcon={<Plus className="h-4 w-4" />}
         >
-          Add Budget
+          {t("budgets.add")}
         </Button>
       </div>
 
@@ -90,10 +92,10 @@ export const BudgetList = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                    {budget.name || "Overall Budget"}
+                    {budget.name || t("budgets.overall")}
                   </h3>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Total budget across all categories
+                    {t("budgets.totalAcrossCategories")}
                   </p>
                 </div>
               </div>
@@ -103,7 +105,7 @@ export const BudgetList = () => {
                   {formatCurrency(budget.amount)}
                 </p>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  {formatCurrency(budget.progress.remaining)} remaining
+                  {formatCurrency(budget.progress.remaining)} {t("common.remaining").toLowerCase()}
                 </p>
               </div>
             </div>
@@ -124,7 +126,7 @@ export const BudgetList = () => {
             <div className="mt-2 flex items-center justify-between text-sm">
               <StatusBadge status={budget.progress.status} />
               <span className="font-medium">
-                {budget.progress.percentage.toFixed(1)}% used
+                {budget.progress.percentage.toFixed(1)}% {t("budgets.used")}
               </span>
             </div>
             <div className="mt-3 flex justify-end gap-1">
@@ -184,7 +186,7 @@ export const BudgetList = () => {
                         {catInfo?.name || budget.category}
                       </h4>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        Monthly budget
+                        {t("budgets.monthlyBudget")}
                       </p>
                     </div>
                   </div>
@@ -217,7 +219,7 @@ export const BudgetList = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-neutral-600 dark:text-neutral-400">
-                      Budget
+                      {t("budgets.budget")}
                     </span>
                     <span className="font-medium text-neutral-900 dark:text-neutral-100">
                       {formatCurrency(budget.amount)}
@@ -225,7 +227,7 @@ export const BudgetList = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-neutral-600 dark:text-neutral-400">
-                      Remaining
+                      {t("common.remaining")}
                     </span>
                     <span
                       className={`font-medium ${progress.remaining < 0 ? "text-red-600" : "text-green-600"}`}
@@ -265,17 +267,17 @@ export const BudgetList = () => {
               <div className="text-center">
                 <Target className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                  No category budgets yet
+                  {t("budgets.noCategoryBudgets")}
                 </h3>
                 <p className="text-neutral-500 dark:text-neutral-400 mb-4">
-                  Create budgets for specific categories to track spending
+                  {t("budgets.createCategoryBudgets")}
                 </p>
                 <Button
                   variant="primary"
                   onClick={handleAdd}
                   leftIcon={<Plus className="h-4 w-4" />}
                 >
-                  Create Budget
+                  {t("budgets.add")}
                 </Button>
               </div>
             </CardContent>
@@ -289,7 +291,7 @@ export const BudgetList = () => {
           setShowForm(false);
           setEditingBudget(null);
         }}
-        title={editingBudget ? "Edit Budget" : "Create Budget"}
+        title={editingBudget ? t("budgets.edit") : t("budgets.add")}
         size="md"
       >
         <BudgetForm
@@ -306,9 +308,9 @@ export const BudgetList = () => {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
-        title="Delete Budget"
-        description="Are you sure you want to delete this budget? This action cannot be undone."
-        confirmText="Delete"
+        title={t("budgets.delete")}
+        description={t("budgets.confirmDelete")}
+        confirmText={t("common.delete")}
         variant="destructive"
       />
     </div>
@@ -316,6 +318,7 @@ export const BudgetList = () => {
 };
 
 const BudgetForm = ({ initialData, onSubmit, onClose }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     amount: "",
@@ -349,15 +352,15 @@ const BudgetForm = ({ initialData, onSubmit, onClose }) => {
     const amount = Number(formData.amount);
     const alertThreshold = Number(formData.alertThreshold);
     if (!formData.name.trim()) {
-      notifyError("Enter a name for this budget.");
+      notifyError(t("validation.budgetNameRequired"));
       return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      notifyError("Enter a budget amount greater than zero.");
+      notifyError(t("validation.budgetAmountRequired"));
       return;
     }
     if (!Number.isFinite(alertThreshold) || alertThreshold < 1 || alertThreshold > 100) {
-      notifyError("Set the budget alert threshold between 1 and 100 percent.");
+      notifyError(t("validation.budgetThreshold"));
       return;
     }
     onSubmit({
@@ -370,39 +373,39 @@ const BudgetForm = ({ initialData, onSubmit, onClose }) => {
   };
 
   const categories = [
-    { value: "", label: "Overall Budget (All Categories)" },
-    { value: "food", label: "Food & Dining" },
-    { value: "transport", label: "Transportation" },
-    { value: "shopping", label: "Shopping" },
-    { value: "entertainment", label: "Entertainment" },
-    { value: "health", label: "Health & Fitness" },
-    { value: "education", label: "Education" },
-    { value: "utilities", label: "Utilities" },
-    { value: "housing", label: "Housing" },
-    { value: "insurance", label: "Insurance" },
-    { value: "personal", label: "Personal Care" },
-    { value: "travel", label: "Travel" },
-    { value: "gifts", label: "Gifts & Donations" },
+    { value: "", label: t("budgets.overallAllCategories") },
+    { value: "food", label: t("categories.foodDining") },
+    { value: "transport", label: t("categories.transportation") },
+    { value: "shopping", label: t("categories.shopping") },
+    { value: "entertainment", label: t("categories.entertainment") },
+    { value: "health", label: t("categories.healthFitness") },
+    { value: "education", label: t("categories.education") },
+    { value: "utilities", label: t("categories.utilities") },
+    { value: "housing", label: t("categories.housing") },
+    { value: "insurance", label: t("categories.insurance") },
+    { value: "personal", label: t("categories.personalCare") },
+    { value: "travel", label: t("categories.travel") },
+    { value: "gifts", label: t("categories.giftsDonations") },
   ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-          Budget Name
+          {t("budgets.name")}
         </label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
-          placeholder="e.g., Monthly Food Budget"
+          placeholder={t("budgets.namePlaceholder")}
           required
         />
       </div>
       <div>
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-          Amount
+          {t("common.amount")}
         </label>
         <input
           type="number"
@@ -417,21 +420,21 @@ const BudgetForm = ({ initialData, onSubmit, onClose }) => {
       </div>
       <div>
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-          Period
+          {t("budgets.period")}
         </label>
         <select
           value={formData.period}
           onChange={(e) => setFormData({ ...formData, period: e.target.value })}
           className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
         >
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
+          <option value="weekly">{t("transactions.weekly")}</option>
+          <option value="monthly">{t("transactions.monthly")}</option>
+          <option value="yearly">{t("transactions.yearly")}</option>
         </select>
       </div>
       <div>
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-          Category
+          {t("common.category")}
         </label>
         <select
           value={formData.category}

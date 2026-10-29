@@ -8,6 +8,8 @@ import {
 } from "react";
 import { supabase } from "../DB/supabaseclient";
 import { useAuth } from "./AuthContext";
+import { usePreferences } from "./PreferencesContext";
+import { convertAmountFromBase } from "../utils/currency";
 import {
   getSafeErrorMessage,
   notifyError,
@@ -61,6 +63,7 @@ const transactionFailure = (error, fallback) => {
 
 export const TransactionProvider = ({ children }) => {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { rate, convertToBase } = usePreferences();
   const [storedTransactions, setTransactions] = useState([]);
   const [loadedUserId, setLoadedUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,8 +143,12 @@ export const TransactionProvider = ({ children }) => {
     };
   }, [isAuthLoading, user?.id]);
 
-  const transactions =
-    loadedUserId === user?.id ? storedTransactions : [];
+ 
+const transactions = useMemo(
+  () => (loadedUserId === user?.id ? storedTransactions : []),
+  [loadedUserId, storedTransactions, user?.id],
+);
+
   const filteredTransactions = useMemo(() => {
     let result = [...transactions];
 
@@ -202,6 +209,7 @@ export const TransactionProvider = ({ children }) => {
             toDatabase(
               {
                 ...transaction,
+                amount: convertToBase(transaction.amount),
                 date: transaction.date || new Date().toISOString().split("T")[0],
               },
               user.id,
@@ -222,7 +230,7 @@ export const TransactionProvider = ({ children }) => {
         return transactionFailure(error, "We couldn't save this transaction.");
       }
     },
-    [user?.id],
+    [convertToBase, user?.id],
   );
 
   const updateTransaction = useCallback(
@@ -237,7 +245,12 @@ export const TransactionProvider = ({ children }) => {
       try {
         const { data, error } = await supabase
           .from("transactions")
-          .update(toDatabase(updates, user.id))
+          .update(
+            toDatabase(
+              { ...updates, amount: convertToBase(updates.amount) },
+              user.id,
+            ),
+          )
           .eq("id", id)
           .eq("user_id", user.id)
           .select()
@@ -265,7 +278,7 @@ export const TransactionProvider = ({ children }) => {
         return transactionFailure(error, "We couldn't update this transaction.");
       }
     },
-    [user?.id],
+    [convertToBase, user?.id],
   );
 
   const deleteTransaction = useCallback(
@@ -328,7 +341,14 @@ export const TransactionProvider = ({ children }) => {
       try {
         const { data, error } = await supabase
           .from("transactions")
-          .insert(parsed.map((transaction) => toDatabase(transaction, user.id)))
+          .insert(
+            parsed.map((transaction) =>
+              toDatabase(
+                { ...transaction, amount: convertToBase(transaction.amount) },
+                user.id,
+              ),
+            ),
+          )
           .select();
 
         if (error) {
@@ -346,7 +366,7 @@ export const TransactionProvider = ({ children }) => {
         );
       }
     },
-    [user?.id],
+    [convertToBase, user?.id],
   );
 
   const exportTransactions = useCallback(

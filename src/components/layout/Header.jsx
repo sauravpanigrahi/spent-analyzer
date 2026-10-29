@@ -14,26 +14,28 @@ import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/Button";
 import { Avatar } from "../ui/Avatar";
 import { Dropdown } from "../ui/Dropdown";
+import { useTranslation } from "react-i18next";
 
 export const Header = ({ onMenuClick }) => {
   const location = useLocation();
   const { resolvedTheme, toggleTheme, setThemeMode, theme } = useTheme();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
 
   const userMenuItems = [
-    { label: "Profile", icon: User, href: "/settings" },
-    { label: "Logout", icon: LogOut, onClick: logout, destructive: true },
+    { label: t("navigation.profile"), icon: User, href: "/settings" },
+    { label: t("navigation.logout"), icon: LogOut, onClick: logout, destructive: true },
   ];
 
   const pageTitles = {
-    "/dashboard": "Dashboard",
-    "/transactions": "Transactions",
-    "/budgets": "Budgets",
-    "/analytics": "Analytics",
-    "/savings": "Savings Goals",
-    "/settings": "Settings",
-    "/security": "Security",
+    "/dashboard": t("navigation.dashboard"),
+    "/transactions": t("navigation.transactions"),
+    "/budgets": t("navigation.budgets"),
+    "/analytics": t("navigation.analytics"),
+    "/savings": t("navigation.savingsGoals"),
+    "/settings": t("navigation.settings"),
+    "/security": t("navigation.security"),
   };
 
   return (
@@ -43,14 +45,14 @@ export const Header = ({ onMenuClick }) => {
           <button
             onClick={onMenuClick}
             className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors lg:hidden"
-            aria-label="Open menu"
+            aria-label={t("navigation.openMenu")}
           >
             <Menu className="h-6 w-6" />
           </button>
 
           <div className="hidden sm:block">
             <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-              {pageTitles[location.pathname] || "Spend Analyzer"}
+              {pageTitles[location.pathname] || t("navigation.home")}
             </h1>
           </div>
         </div>
@@ -63,11 +65,11 @@ export const Header = ({ onMenuClick }) => {
             />
             <input
               type="search"
-              placeholder="Search transactions..."
+              placeholder={t("common.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              aria-label="Search transactions"
+              aria-label={t("common.search")}
             />
           </div>
         </div>
@@ -78,10 +80,10 @@ export const Header = ({ onMenuClick }) => {
             className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             aria-label={
               theme === "system"
-                ? "Current: System"
+                ? t("theme.currentSystem")
                 : resolvedTheme === "dark"
-                  ? "Switch to light mode"
-                  : "Switch to dark mode"
+                  ? t("theme.switchLight")
+                  : t("theme.switchDark")
             }
           >
             {theme === "system" ? (
@@ -97,12 +99,12 @@ export const Header = ({ onMenuClick }) => {
             trigger={
               <Button variant="ghost" size="sm" className="gap-1 p-1">
                 <Avatar
-                  name={user?.name || "User"}
+                  name={user?.name || t("common.user")}
                   src={user?.avatar}
                   size="sm"
                 />
                 <span className="hidden sm:block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  {user?.name?.split(" ")[0] || "User"}
+                  {user?.name?.split(" ")[0] || t("common.user")}
                 </span>
               </Button>
             }

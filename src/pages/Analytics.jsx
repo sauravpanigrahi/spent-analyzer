@@ -30,6 +30,7 @@ import {
   TabsPanel,
 } from "../components/ui/Tabs";
 import { formatCurrency, formatDate } from "../utils/helpers";
+import { useTranslation } from "react-i18next";
 import {
   Calendar,
   Filter,
@@ -46,6 +47,7 @@ import {
 } from "lucide-react";
 
 export const Analytics = () => {
+  const { t } = useTranslation();
   const {
     transactions,
     filters,
@@ -59,11 +61,11 @@ export const Analytics = () => {
     useBudgetCalculations(transactions);
 
   const dateRangeOptions = [
-    { value: "this-month", label: "This Month" },
-    { value: "last-3-months", label: "Last 3 Months" },
-    { value: "last-6-months", label: "Last 6 Months" },
-    { value: "this-year", label: "This Year" },
-    { value: "custom", label: "Custom Range" },
+    { value: "this-month", label: t("transactions.thisMonth") },
+    { value: "last-3-months", label: t("transactions.lastThreeMonths") },
+    { value: "last-6-months", label: t("transactions.lastSixMonths") },
+    { value: "this-year", label: t("transactions.thisYear") },
+    { value: "custom", label: t("transactions.customRange") },
   ];
 
   const { start, end } = getDateRange(filters.dateRange);
@@ -112,10 +114,10 @@ export const Analytics = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Analytics
+            {t("analytics.title")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400">
-            Deep insights into your financial patterns
+            {t("analytics.overview")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -126,7 +128,7 @@ export const Analytics = () => {
               setFilters({ ...filters, dateRange: e.target.value })
             }
             className="w-44"
-            placeholder="Time Range"
+            placeholder={t("dashboard.timeRange")}
             leftIcon={<Calendar className="h-4 w-4" />}
           />
         </div>
@@ -138,7 +140,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                  Avg Daily Spending
+                  {t("analytics.averageDailySpending")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(avgDailySpending)}
@@ -155,7 +157,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                  Savings Rate
+                  {t("common.savingsRate")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
                   {savingsRate.toFixed(1)}%
@@ -172,7 +174,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                  Total Income
+                  {t("common.totalIncome")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {formatCurrency(totals.income)}
@@ -189,7 +191,7 @@ export const Analytics = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                  Total Expenses
+                  {t("common.totalExpenses")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">
                   {formatCurrency(totals.expenses)}
@@ -205,10 +207,10 @@ export const Analytics = () => {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="spending">Spending</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger value="overview">{t("analytics.overviewTab")}</TabsTrigger>
+          <TabsTrigger value="spending">{t("analytics.spendingTab")}</TabsTrigger>
+          <TabsTrigger value="income">{t("common.income")}</TabsTrigger>
+          <TabsTrigger value="budgets">{t("navigation.budgets")}</TabsTrigger>
         </TabsList>
 
         <TabsPanels>
@@ -230,7 +232,7 @@ export const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Category Breakdown</CardTitle>
+                  <CardTitle>{t("analytics.categoryBreakdown")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CategorySpendingChart
@@ -241,7 +243,7 @@ export const Analytics = () => {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Daily Spending Pattern</CardTitle>
+                  <CardTitle>{t("analytics.dailySpendingPattern")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <DailySpendingChart dailyData={dailyData} />
@@ -250,7 +252,7 @@ export const Analytics = () => {
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Top Spending Categories</CardTitle>
+                <CardTitle>{t("dashboard.topCategories")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {topCategories.map((item, index) => {
@@ -307,7 +309,7 @@ export const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Income Sources</CardTitle>
+                  <CardTitle>{t("analytics.incomeSources")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CategorySpendingChart
@@ -318,7 +320,7 @@ export const Analytics = () => {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Monthly Income Trend</CardTitle>
+                  <CardTitle>{t("analytics.monthlyIncomeTrend")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <MonthlyTrendChart data={monthlyComparison} />
@@ -327,7 +329,7 @@ export const Analytics = () => {
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Income by Category</CardTitle>
+                <CardTitle>{t("analytics.incomeByCategory")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {incomeCategoryTotals.map((item, index) => {
@@ -382,7 +384,7 @@ export const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Budget Performance</CardTitle>
+                  <CardTitle>{t("analytics.budgetPerformance")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {categoryBudgets.map((budget) => {
@@ -450,7 +452,7 @@ export const Analytics = () => {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Budget vs Actual</CardTitle>
+                  <CardTitle>{t("analytics.budgetVsActual")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <IncomeVsExpenseChart data={monthlyComparison} />
