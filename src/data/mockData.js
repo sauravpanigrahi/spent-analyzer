@@ -36,6 +36,12 @@ export const categories = [
   { id: "salary", name: "Salary", icon: "Wallet", color: "#22c55e" },
   { id: "freelance", name: "Freelance", icon: "Laptop", color: "#84cc16" },
   {
+    id: "pocket-money",
+    name: "Pocket Money",
+    icon: "Wallet",
+    color: "#0d9488",
+  },
+  {
     id: "investments",
     name: "Investments",
     icon: "TrendingUp",
@@ -55,6 +61,7 @@ export const paymentMethods = [
   { id: "debit-card", name: "Debit Card", icon: "CreditCard" },
   { id: "bank-transfer", name: "Bank Transfer", icon: "Building2" },
   { id: "digital-wallet", name: "Digital Wallet", icon: "Smartphone" },
+  { id: "upi", name: "UPI", icon: "Smartphone" },
   { id: "other", name: "Other", icon: "MoreHorizontal" },
 ];
 

@@ -127,13 +127,21 @@ export const TransactionForm = ({
 
   const filteredCategories = categories.filter((c) => {
     if (formData.type === "income") {
-      return ["salary", "freelance", "investments", "other-income"].includes(
-        c.id,
-      );
+      return [
+        "salary",
+        "freelance",
+        "investments",
+        "pocket-money",
+        "other-income",
+      ].includes(c.id);
     }
-    return !["salary", "freelance", "investments", "other-income"].includes(
-      c.id,
-    );
+    return ![
+      "salary",
+      "freelance",
+      "investments",
+      "pocket-money",
+      "other-income",
+    ].includes(c.id);
   });
 
   return (
