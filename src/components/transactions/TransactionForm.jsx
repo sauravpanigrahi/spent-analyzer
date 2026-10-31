@@ -26,13 +26,23 @@ export const TransactionForm = ({
   initialData,
   isLoading,
 }) => {
+   const getLocalDate = () => {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  };
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
     type: "expense",
     category: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDate(),
     paymentMethod: "credit-card",
     notes: "",
     isRecurring: false,
@@ -48,7 +58,7 @@ export const TransactionForm = ({
         amount: initialData.amount?.toString() || "",
         type: initialData.type || "expense",
         category: initialData.category || "",
-        date: initialData.date || new Date().toISOString().split("T")[0],
+        date: initialData.date || getLocalDate(),
         paymentMethod: initialData.paymentMethod || "credit-card",
         notes: initialData.notes || "",
         isRecurring: initialData.isRecurring || false,
@@ -60,7 +70,7 @@ export const TransactionForm = ({
         amount: "",
         type: "expense",
         category: "",
-        date: new Date().toISOString().split("T")[0],
+        date: getLocalDate(),
         paymentMethod: "credit-card",
         notes: "",
         isRecurring: false,
