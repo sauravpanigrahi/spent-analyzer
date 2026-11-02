@@ -156,6 +156,46 @@
       transform: translateY(0);
     }
   }
+
+  .ask-ai-glow {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .ask-ai-glow::before,
+  .ask-ai-glow::after {
+    position: absolute;
+    z-index: 0;
+    inset: -3px;
+    border: 2px solid rgb(168 85 247 / 70%);
+    border-radius: 9999px;
+    content: "";
+    pointer-events: none;
+    animation: askAiPulse 2.4s ease-out infinite;
+  }
+
+  .ask-ai-glow::after {
+    animation-delay: 1.2s;
+  }
+
+  @keyframes askAiPulse {
+    0% {
+      opacity: 0.75;
+      transform: scale(0.94);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.2);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ask-ai-glow::before,
+    .ask-ai-glow::after {
+      animation: none;
+      opacity: 0.5;
+    }
+  }
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }

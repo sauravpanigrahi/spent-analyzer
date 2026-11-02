@@ -138,7 +138,7 @@ export const TransactionForm = ({
     return ![
       "salary",
       "freelance",
-      "investments",
+      // "investments",
       "pocket-money",
       "other-income",
     ].includes(c.id);

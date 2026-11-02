@@ -14,6 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/Button";
 import { Avatar } from "../ui/Avatar";
 import { Dropdown } from "../ui/Dropdown";
+import { AskAiAssistant } from "./AskAiAssistant";
 import { useTranslation } from "react-i18next";
 
 export const Header = ({ onMenuClick }) => {
@@ -75,6 +76,8 @@ export const Header = ({ onMenuClick }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <AskAiAssistant />
+
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
