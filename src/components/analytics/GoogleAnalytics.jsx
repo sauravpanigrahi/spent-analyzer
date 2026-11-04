@@ -4,11 +4,24 @@ import { notifyWarning } from "../../utils/notifications";
 
 const CONSENT_KEY = "spent-analyzer-analytics-consent";
 const CONSENT_EVENT = "spent-analyzer-analytics-consent";
+const AUTHENTICATION_PATHS = new Set([
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/email-confirmed",
+  "/profile-setup",
+]);
 const configuredMeasurementId = import.meta.env.GA_MEASUREMENT_ID?.trim();
 const measurementId =
   configuredMeasurementId && /^G-[A-Z0-9]+$/i.test(configuredMeasurementId)
     ? configuredMeasurementId
     : null;
+
+const isAuthenticationPath = (pathname) => {
+  const normalizedPath = pathname.replace(/\/+$/, "").toLowerCase() || "/";
+  return AUTHENTICATION_PATHS.has(normalizedPath);
+};
 
 if (configuredMeasurementId && !measurementId) {
   notifyWarning(
@@ -27,7 +40,7 @@ const analyticsState = () => {
   return window.__spentAnalyzerAnalytics;
 };
 
-const initializeGoogleAnalytics = (id) => {
+const initializeGoogleAnalytics = (id, pagePath) => {
   const state = analyticsState();
   if (state.initializedIds.has(id)) return;
 
@@ -40,6 +53,8 @@ const initializeGoogleAnalytics = (id) => {
   window.gtag("js", new Date());
   window.gtag("config", id, {
     send_page_view: false,
+    page_path: pagePath,
+    page_location: `${window.location.origin}${pagePath}`,
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
   });
@@ -86,10 +101,12 @@ export const GoogleAnalytics = () => {
 
   useEffect(() => {
     if (!measurementId || consent !== "accepted") return;
-    initializeGoogleAnalytics(measurementId);
+    const pagePath = location.pathname;
+    if (isAuthenticationPath(pagePath)) return;
+
+    initializeGoogleAnalytics(measurementId, pagePath);
 
     const state = analyticsState();
-    const pagePath = location.pathname;
     if (state.lastPageViews.get(measurementId) === pagePath) return;
     state.lastPageViews.set(measurementId, pagePath);
 

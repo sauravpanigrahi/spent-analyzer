@@ -4,7 +4,7 @@ export const convertAmountFromBase = (amount, rate) => {
 
   if (!Number.isFinite(value)) return 0;
   if (!Number.isFinite(conversionRate) || conversionRate <= 0) {
-    return null;
+    return value;
   }
 
   return value * conversionRate;
@@ -16,7 +16,7 @@ export const convertAmountToBase = (amount, rate) => {
 
   if (!Number.isFinite(value)) return 0;
   if (!Number.isFinite(conversionRate) || conversionRate <= 0) {
-    return null;
+    return value;
   }
 
   return value / conversionRate;

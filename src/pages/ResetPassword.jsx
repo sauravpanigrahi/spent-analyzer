@@ -98,6 +98,7 @@ export const ResetPassword = () => {
       })
       .catch((error) => {
         if (active) {
+          clearSensitiveUrl();
           setStatus("invalid");
           notifyError(
             getSafeErrorMessage(
